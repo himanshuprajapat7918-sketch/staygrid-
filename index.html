@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>StayGrid — Hostel & PG Management Platform</title>
+    <title>StayGrid — Hostel &amp; PG Management Platform</title>
     <meta
       name="description"
       content="Interactive Hostel & PG Management platform with floor-by-floor 2D room builders, live occupancy analytics, and tenant discovery."
@@ -15,15 +15,2970 @@
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Curated Google Fonts: Plus Jakarta Sans, DM Sans, JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Tailwind CSS via CDN (Zero-build: runs directly in any browser or VS Code Live Server) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              display: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              sans: ['"DM Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'monospace'],
+            },
+          },
+        },
+      };
+    </script>
+
+    <!-- Chart.js via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+    <style>
+      html {
+        font-family: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+        scroll-behavior: smooth;
+      }
+      h1, h2, h3, h4, .font-display {
+        font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+      }
+      .tabular-nums {
+        font-variant-numeric: tabular-nums;
+      }
+      @keyframes modalFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes modalSlideUp {
+        from { opacity: 0; transform: translateY(10px) scale(0.985); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      @keyframes toastSlideIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .animate-modal-backdrop {
+        animation: modalFadeIn 160ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      .animate-modal-panel {
+        animation: modalSlideUp 190ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      .animate-toast {
+        animation: toastSlideIn 190ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .animate-modal-backdrop, .animate-modal-panel, .animate-toast {
+          animation: none !important;
+        }
+      }
+    </style>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-indigo-100 selection:text-indigo-900">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <div id="app" class="flex min-h-screen flex-col">
+      <!-- Persistent Top Navigation Bar -->
+      <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-sm">
+        <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-8 px-4 sm:px-6 lg:px-8">
+          <button
+            type="button"
+            id="nav-brand-btn"
+            class="flex shrink-0 items-center gap-2.5 whitespace-nowrap text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-600"
+            aria-label="StayGrid Home"
+          >
+            <span
+              class="grid h-8 w-8 shrink-0 grid-cols-2 gap-1 rounded-lg bg-slate-900 p-1.5"
+              aria-hidden="true"
+            >
+              <span class="rounded-[2px] bg-white"></span>
+              <span class="rounded-[2px] bg-indigo-400"></span>
+              <span class="rounded-[2px] bg-emerald-400"></span>
+              <span class="rounded-[2px] bg-white/85"></span>
+            </span>
+            <span class="font-display text-lg font-bold tracking-tight text-slate-900">StayGrid</span>
+          </button>
+
+          <nav aria-label="Primary navigation" class="hidden items-center gap-7 text-sm font-medium md:flex">
+            <button type="button" data-nav-role="landing" class="nav-link whitespace-nowrap shrink-0 border-b-2 py-1 transition-colors">
+              Overview
+            </button>
+            <button type="button" data-nav-role="tenant" class="nav-link whitespace-nowrap shrink-0 border-b-2 py-1 transition-colors">
+              Student / Tenant
+            </button>
+            <button type="button" data-nav-role="landlord" class="nav-link whitespace-nowrap shrink-0 border-b-2 py-1 transition-colors">
+              Landlord Studio
+            </button>
+          </nav>
+
+          <div class="flex shrink-0 items-center">
+            <button
+              type="button"
+              id="switch-role-btn"
+              class="inline-flex min-h-[40px] shrink-0 items-center gap-2 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 transition-colors hover:border-slate-400 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            >
+              <svg class="h-4 w-4 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m16 3 4 4-4 4"></path>
+                <path d="M20 7H4"></path>
+                <path d="m8 21-4-4 4-4"></path>
+                <path d="M4 17h16"></path>
+              </svg>
+              <span>Switch Role</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Main Dynamic View Container -->
+      <main id="main-content" class="flex-1"></main>
+
+      <!-- Footer -->
+      <footer class="mt-16 border-t border-slate-200 bg-white">
+        <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 py-6 text-xs text-slate-500 sm:flex-row sm:px-6 lg:px-8">
+          <p id="footer-copy">© 2026 StayGrid. Hostel &amp; PG Management Platform.</p>
+          <div class="flex items-center gap-5">
+            <button type="button" data-nav-role="tenant" class="transition-colors hover:text-slate-900">
+              Student / Tenant
+            </button>
+            <button type="button" data-nav-role="landlord" class="transition-colors hover:text-slate-900">
+              Landlord Studio
+            </button>
+          </div>
+        </div>
+      </footer>
+    </div>
+
+    <!-- Modal Root -->
+    <div id="modal-root"></div>
+
+    <!-- Toast Container -->
+    <div
+      id="toast-container"
+      aria-live="polite"
+      class="pointer-events-none fixed right-4 bottom-4 z-50 flex w-full max-w-sm flex-col gap-2.5 sm:right-6 sm:bottom-6"
+    ></div>
+
+    <script>
+      (() => {
+        'use strict';
+
+        // =========================================================================
+        // 1. CONSTANTS, SEED IMAGES & INITIAL SAMPLE DATA
+        // =========================================================================
+        const STORAGE_KEYS = {
+          PROPERTIES: 'staygrid_properties_v1',
+          TENANT_PROFILE: 'staygrid_tenant_profile_v1',
+          VISIT_REQUESTS: 'staygrid_visit_requests_v1',
+        };
+
+        const SEED_IMAGES = {
+          singleSunlit: './src/assets/images/room_single_sunlit_1795760870263.jpg',
+          twinModern: './src/assets/images/room_twin_modern_1795760871002.jpg',
+          studioBalcony: './src/assets/images/room_studio_balcony_1795760870263.jpg',
+          cozyCorner: './src/assets/images/room_cozy_corner_1795760872624.jpg',
+          commonLounge: './src/assets/images/hostel_common_lounge_1795760873361.jpg',
+        };
+
+        const INITIAL_PROPERTIES = [
+          {
+            id: 'prop-horizon-koramangala',
+            name: 'Horizon Residency PG',
+            location: 'Koramangala, Bengaluru',
+            owner: {
+              name: 'Rajeshwari Menon',
+              phone: '+91 98450 32140',
+              email: 'rajeshwari@horizonpg.in',
+            },
+            updatedAt: '2026-11-20T09:30:00.000Z',
+            floors: [
+              {
+                id: 'fl-hor-0',
+                name: 'Ground Floor',
+                rooms: [
+                  {
+                    id: 'rm-hor-g01',
+                    label: 'G-01',
+                    rent: 11500,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.singleSunlit, SEED_IMAGES.commonLounge],
+                    maintenanceNotes:
+                      'Freshly painted last month. Dedicated 100 Mbps Wi-Fi router on floor, RO drinking water dispenser outside corridor, housekeeping three times a week.',
+                  },
+                  {
+                    id: 'rm-hor-g02',
+                    label: 'G-02',
+                    rent: 9200,
+                    status: 'occupied',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.twinModern],
+                    maintenanceNotes:
+                      'Twin-sharing layout with individual lockable wardrobes and study lamps. Plumbing and geyser serviced in October.',
+                  },
+                  {
+                    id: 'rm-hor-g03',
+                    label: 'G-03',
+                    rent: 9200,
+                    status: 'available',
+                    utilities: { electricity: true, water: true, gas: false },
+                    images: [SEED_IMAGES.cozyCorner, SEED_IMAGES.commonLounge],
+                    maintenanceNotes:
+                      'Quiet courtyard-facing corner room. Mosquito mesh installed on all windows; power backup covers lights, fan, and laptop sockets.',
+                  },
+                  {
+                    id: 'rm-hor-g04',
+                    label: 'G-04',
+                    rent: 10800,
+                    status: 'occupied',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.singleSunlit],
+                    maintenanceNotes:
+                      'Private single room near reception with biometric main entrance access and CCTV in common hallway.',
+                  },
+                ],
+              },
+              {
+                id: 'fl-hor-1',
+                name: 'Floor 1',
+                rooms: [
+                  {
+                    id: 'rm-hor-101',
+                    label: '101',
+                    rent: 14500,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.studioBalcony, SEED_IMAGES.commonLounge],
+                    maintenanceNotes:
+                      'East-facing balcony room with 1.5-ton inverter split AC (filter cleaned Nov 2026). Attached washroom with instant 25L water heater.',
+                  },
+                  {
+                    id: 'rm-hor-102',
+                    label: '102',
+                    rent: 12000,
+                    status: 'occupied',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.singleSunlit],
+                    maintenanceNotes:
+                      'Ergonomic study chair replaced recently. Laundry washing machine shared on terrace with weekly sanitization.',
+                  },
+                  {
+                    id: 'rm-hor-103',
+                    label: '103',
+                    rent: 9500,
+                    status: 'available',
+                    utilities: { electricity: true, water: true, gas: true },
+                    images: [SEED_IMAGES.twinModern, SEED_IMAGES.cozyCorner],
+                    maintenanceNotes:
+                      'All-inclusive twin sharing room. Ceiling fan and LED battens newly upgraded; mattress protectors replaced every tenancy.',
+                  },
+                  {
+                    id: 'rm-hor-104',
+                    label: '104',
+                    rent: 12200,
+                    status: 'occupied',
+                    utilities: { electricity: false, water: true, gas: false },
+                    images: [SEED_IMAGES.cozyCorner],
+                    maintenanceNotes:
+                      'Well-ventilated single occupancy unit with blackout curtains and shoe rack at entrance.',
+                  },
+                  {
+                    id: 'rm-hor-105',
+                    label: '105',
+                    rent: 14200,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.studioBalcony],
+                    maintenanceNotes:
+                      'Corner balcony room overlooking tree-lined street. Sub-meter installed outside door for transparent monthly electricity billing.',
+                  },
+                ],
+              },
+              {
+                id: 'fl-hor-2',
+                name: 'Floor 2',
+                rooms: [
+                  {
+                    id: 'rm-hor-201',
+                    label: '201',
+                    rent: 11800,
+                    status: 'occupied',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.singleSunlit],
+                    maintenanceNotes:
+                      'Top-floor sunlit room with acoustic window glazing and direct access to rooftop pantry.',
+                  },
+                  {
+                    id: 'rm-hor-202',
+                    label: '202',
+                    rent: 8800,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.twinModern],
+                    maintenanceNotes:
+                      'Budget twin-sharing bed with two dedicated oak desks, pinboards, and high-speed dual-band Wi-Fi.',
+                  },
+                  {
+                    id: 'rm-hor-203',
+                    label: '203',
+                    rent: 13500,
+                    status: 'occupied',
+                    utilities: { electricity: true, water: true, gas: true },
+                    images: [SEED_IMAGES.studioBalcony],
+                    maintenanceNotes:
+                      'Premium single suite with split AC, mini bookshelf, and weekly linen change included.',
+                  },
+                  {
+                    id: 'rm-hor-204',
+                    label: '204',
+                    rent: 11200,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.cozyCorner],
+                    maintenanceNotes:
+                      'Newly inspected bathroom fittings and fresh water-resistant paint. Zero seepage, quiet academic corridor.',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: 'prop-cedar-hinjewadi',
+            name: 'Cedar Grove Student Hostel',
+            location: 'Hinjewadi, Pune',
+            owner: {
+              name: 'Vikramaditya Deshmukh',
+              phone: '+91 97641 88210',
+              email: 'vikram@cedargrovehostel.in',
+            },
+            updatedAt: '2026-11-22T14:15:00.000Z',
+            floors: [
+              {
+                id: 'fl-ced-0',
+                name: 'Ground Floor',
+                rooms: [
+                  {
+                    id: 'rm-ced-g01',
+                    label: 'G-01',
+                    rent: 7800,
+                    status: 'available',
+                    utilities: { electricity: true, water: true, gas: true },
+                    images: [SEED_IMAGES.twinModern, SEED_IMAGES.commonLounge],
+                    maintenanceNotes:
+                      'Walking distance to Phase 1 IT shuttle stop. Solar water heating system operational 24/7; pest control conducted quarterly.',
+                  },
+                  {
+                    id: 'rm-ced-g02',
+                    label: 'G-02',
+                    rent: 7500,
+                    status: 'occupied',
+                    utilities: { electricity: true, water: true, gas: false },
+                    images: [SEED_IMAGES.cozyCorner],
+                    maintenanceNotes:
+                      'Ground floor room with easy bicycle parking access and biometric attendance gate.',
+                  },
+                  {
+                    id: 'rm-ced-g03',
+                    label: 'G-03',
+                    rent: 9800,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.singleSunlit],
+                    maintenanceNotes:
+                      'Private room with oak study desk, full-length wardrobe, and 24-hour generator backup.',
+                  },
+                  {
+                    id: 'rm-ced-g04',
+                    label: 'G-04',
+                    rent: 7800,
+                    status: 'occupied',
+                    utilities: { electricity: true, water: true, gas: true },
+                    images: [SEED_IMAGES.twinModern],
+                    maintenanceNotes:
+                      'Clean vitrified tile flooring, newly serviced exhaust fan, and dedicated drinking water tap.',
+                  },
+                ],
+              },
+              {
+                id: 'fl-ced-1',
+                name: 'Floor 1',
+                rooms: [
+                  {
+                    id: 'rm-ced-101',
+                    label: '101',
+                    rent: 11500,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.studioBalcony, SEED_IMAGES.commonLounge],
+                    maintenanceNotes:
+                      'Spacious balcony room with split AC and fiber-optic LAN port at study desk. Deep-cleaned this week.',
+                  },
+                  {
+                    id: 'rm-ced-102',
+                    label: '102',
+                    rent: 8200,
+                    status: 'occupied',
+                    utilities: { electricity: true, water: true, gas: true },
+                    images: [SEED_IMAGES.twinModern],
+                    maintenanceNotes:
+                      'Twin occupancy with separate steel storage lockers and common induction kitchenette on the landing.',
+                  },
+                  {
+                    id: 'rm-ced-103',
+                    label: '103',
+                    rent: 10200,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: false },
+                    images: [SEED_IMAGES.cozyCorner],
+                    maintenanceNotes:
+                      'Cross-ventilated corner room with quiet garden outlook. Routine electrical safety audit passed in Nov 2026.',
+                  },
+                  {
+                    id: 'rm-ced-104',
+                    label: '104',
+                    rent: 11200,
+                    status: 'occupied',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.singleSunlit],
+                    maintenanceNotes:
+                      'Single occupancy suite with attached bathroom and weekly room sanitization.',
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: 'prop-maple-delhi',
+            name: 'Maple Court Scholars PG',
+            location: 'North Campus, Delhi',
+            owner: {
+              name: 'Ananya Malhotra',
+              phone: '+91 98112 64590',
+              email: 'ananya@maplecourtpg.in',
+            },
+            updatedAt: '2026-11-24T17:45:00.000Z',
+            floors: [
+              {
+                id: 'fl-map-1',
+                name: 'Floor 1',
+                rooms: [
+                  {
+                    id: 'rm-map-101',
+                    label: '101',
+                    rent: 13800,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.studioBalcony, SEED_IMAGES.commonLounge],
+                    maintenanceNotes:
+                      '5 minutes from Vishwavidyalaya Metro. Split AC, study desk with bookshelf, and daily corridor housekeeping. Geyser serviced for winter.',
+                  },
+                  {
+                    id: 'rm-map-102',
+                    label: '102',
+                    rent: 9600,
+                    status: 'occupied',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.twinModern],
+                    maintenanceNotes:
+                      'Twin-sharing academic room with two desks, bright daylight window, and RO water purifier on floor.',
+                  },
+                  {
+                    id: 'rm-map-103',
+                    label: '103',
+                    rent: 12400,
+                    status: 'available',
+                    utilities: { electricity: true, water: true, gas: true },
+                    images: [SEED_IMAGES.singleSunlit],
+                    maintenanceNotes:
+                      'All bills included up to 120 units/month. Wooden wardrobe, orthopedic single mattress, and 24/7 caretaker support.',
+                  },
+                  {
+                    id: 'rm-map-104',
+                    label: '104',
+                    rent: 9600,
+                    status: 'occupied',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.cozyCorner],
+                    maintenanceNotes:
+                      'Quiet rear-facing room preferred by exam aspirants. Inverter backup connected to desk lamp and Wi-Fi.',
+                  },
+                  {
+                    id: 'rm-map-105',
+                    label: '105',
+                    rent: 11800,
+                    status: 'occupied',
+                    utilities: { electricity: false, water: true, gas: false },
+                    images: [SEED_IMAGES.singleSunlit],
+                    maintenanceNotes:
+                      'Single occupancy with attached washroom and newly installed shower mixer.',
+                  },
+                ],
+              },
+              {
+                id: 'fl-map-2',
+                name: 'Floor 2',
+                rooms: [
+                  {
+                    id: 'rm-map-201',
+                    label: '201',
+                    rent: 12900,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.cozyCorner, SEED_IMAGES.commonLounge],
+                    maintenanceNotes:
+                      'Sunlit second-floor room with large window overlooking park. Fresh curtains and newly serviced ceiling fan.',
+                  },
+                  {
+                    id: 'rm-map-202',
+                    label: '202',
+                    rent: 9000,
+                    status: 'available',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.twinModern],
+                    maintenanceNotes:
+                      'Affordable twin-sharing space with high-speed Wi-Fi, shared fridge on landing, and biometric entry.',
+                  },
+                  {
+                    id: 'rm-map-203',
+                    label: '203',
+                    rent: 13500,
+                    status: 'occupied',
+                    utilities: { electricity: false, water: true, gas: true },
+                    images: [SEED_IMAGES.studioBalcony],
+                    maintenanceNotes:
+                      'Balcony studio room with AC and full-size desk. Roof waterproofing inspected before monsoon.',
+                  },
+                  {
+                    id: 'rm-map-204',
+                    label: '204',
+                    rent: 11500,
+                    status: 'occupied',
+                    utilities: { electricity: true, water: true, gas: true },
+                    images: [SEED_IMAGES.singleSunlit],
+                    maintenanceNotes:
+                      'Compact single room with all utilities covered and access to common study lounge.',
+                  },
+                ],
+              },
+            ],
+          },
+        ];
+
+        // =========================================================================
+        // 2. HELPERS & LOCALSTORAGE PERSISTENCE
+        // =========================================================================
+        function deepClone(obj) {
+          return JSON.parse(JSON.stringify(obj));
+        }
+
+        function escapeHtml(str) {
+          return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
+
+        function formatINR(amount) {
+          const safe = Number.isFinite(Number(amount)) ? Number(amount) : 0;
+          return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            maximumFractionDigits: 0,
+          }).format(safe);
+        }
+
+        function isValidEmail(email) {
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+        }
+
+        function isValidPhone(phone) {
+          const digits = String(phone || '').replace(/\D/g, '');
+          return digits.length >= 10 && digits.length <= 15;
+        }
+
+        function normalizeImageSrc(src) {
+          if (!src) return '';
+          if (src.startsWith('/src/assets/')) return '.' + src;
+          return src;
+        }
+
+        function loadProperties() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEYS.PROPERTIES);
+            if (!raw) {
+              localStorage.setItem(STORAGE_KEYS.PROPERTIES, JSON.stringify(INITIAL_PROPERTIES));
+              return deepClone(INITIAL_PROPERTIES);
+            }
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              return parsed;
+            }
+            localStorage.setItem(STORAGE_KEYS.PROPERTIES, JSON.stringify(INITIAL_PROPERTIES));
+            return deepClone(INITIAL_PROPERTIES);
+          } catch {
+            return deepClone(INITIAL_PROPERTIES);
+          }
+        }
+
+        function saveProperties(list) {
+          try {
+            localStorage.setItem(STORAGE_KEYS.PROPERTIES, JSON.stringify(list));
+            return true;
+          } catch {
+            return false;
+          }
+        }
+
+        function loadTenantProfile() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEYS.TENANT_PROFILE);
+            return raw ? JSON.parse(raw) : null;
+          } catch {
+            return null;
+          }
+        }
+
+        function saveTenantProfile(profile) {
+          try {
+            localStorage.setItem(STORAGE_KEYS.TENANT_PROFILE, JSON.stringify(profile));
+          } catch {}
+        }
+
+        function loadVisitRequests() {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEYS.VISIT_REQUESTS);
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            return [];
+          }
+        }
+
+        function saveVisitRequests(reqs) {
+          try {
+            localStorage.setItem(STORAGE_KEYS.VISIT_REQUESTS, JSON.stringify(reqs));
+          } catch {}
+        }
+
+        function getPropertyStats(property) {
+          let totalRooms = 0;
+          let availableRooms = 0;
+          let occupiedRooms = 0;
+          let minRent = Infinity;
+
+          for (const floor of property.floors || []) {
+            for (const room of floor.rooms || []) {
+              totalRooms += 1;
+              if (room.status === 'available') availableRooms += 1;
+              else occupiedRooms += 1;
+              if (room.rent > 0 && room.rent < minRent) minRent = room.rent;
+            }
+          }
+          return {
+            totalFloors: (property.floors || []).length,
+            totalRooms,
+            availableRooms,
+            occupiedRooms,
+            minRent: minRent === Infinity ? 0 : minRent,
+            occupancyRate: totalRooms > 0 ? Math.round((occupiedRooms / totalRooms) * 100) : 0,
+          };
+        }
+
+        function getPropertyCoverImage(property) {
+          for (const floor of property.floors || []) {
+            for (const room of floor.rooms || []) {
+              if (room.images && room.images.length > 0) {
+                return normalizeImageSrc(room.images[0]);
+              }
+            }
+          }
+          return '';
+        }
+
+        function createDefaultFloorName(index) {
+          return index === 0 ? 'Ground Floor' : `Floor ${index}`;
+        }
+
+        function generateRoomLabel(floorIndex, roomIndex) {
+          const num = roomIndex + 1;
+          if (floorIndex === 0) return `G-${String(num).padStart(2, '0')}`;
+          return `${floorIndex}${String(num).padStart(2, '0')}`;
+        }
+
+        function createEmptyProperty() {
+          const ts = Date.now();
+          return {
+            id: `prop-${ts}`,
+            name: '',
+            location: '',
+            owner: { name: '', phone: '', email: '' },
+            floors: [
+              {
+                id: `fl-${ts}-0`,
+                name: 'Ground Floor',
+                rooms: [
+                  { id: `rm-${ts}-1`, label: 'G-01', rent: 9500, status: 'available', utilities: { electricity: false, water: true, gas: true }, images: [], maintenanceNotes: '' },
+                  { id: `rm-${ts}-2`, label: 'G-02', rent: 9500, status: 'available', utilities: { electricity: false, water: true, gas: true }, images: [], maintenanceNotes: '' },
+                  { id: `rm-${ts}-3`, label: 'G-03', rent: 9500, status: 'occupied', utilities: { electricity: false, water: true, gas: true }, images: [], maintenanceNotes: '' },
+                  { id: `rm-${ts}-4`, label: 'G-04', rent: 9500, status: 'available', utilities: { electricity: false, water: true, gas: true }, images: [], maintenanceNotes: '' },
+                ],
+              },
+            ],
+            updatedAt: new Date().toISOString(),
+          };
+        }
+
+        function readAndOptimizeImage(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = () => reject(new Error('Failed to read image'));
+            reader.onload = () => {
+              const dataUrl = reader.result;
+              const img = new Image();
+              img.onload = () => {
+                const MAX_DIM = 960;
+                let { width, height } = img;
+                if (width <= MAX_DIM && height <= MAX_DIM && dataUrl.length < 280000) {
+                  resolve(dataUrl);
+                  return;
+                }
+                const scale = Math.min(MAX_DIM / width, MAX_DIM / height, 1);
+                width = Math.round(width * scale);
+                height = Math.round(height * scale);
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                  resolve(dataUrl);
+                  return;
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', 0.78));
+              };
+              img.onerror = () => resolve(dataUrl);
+              img.src = dataUrl;
+            };
+            reader.readAsDataURL(file);
+          });
+        }
+
+        // Resilient image HTML with styled architectural fallback if image is missing or fails
+        function renderImageMarkup(src, alt, fallbackLabel, extraClasses = 'h-full w-full object-cover') {
+          const cleanSrc = normalizeImageSrc(src);
+          const safeAlt = escapeHtml(alt);
+          const safeFallback = escapeHtml(fallbackLabel || 'Room Preview');
+          const fallbackHtml = `
+            <div class="img-fallback flex h-full w-full flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-100 via-slate-50 to-indigo-50/70 p-4 text-center" ${cleanSrc ? 'style="display:none"' : ''}>
+              <svg class="h-8 w-8 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                <path d="M9 22v-4h6v4"></path>
+                <path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path>
+                <path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path>
+                <path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path>
+              </svg>
+              <span class="text-xs font-medium text-slate-500">${safeFallback}</span>
+            </div>
+          `;
+          if (!cleanSrc) return fallbackHtml;
+          return `
+            <img
+              src="${escapeHtml(cleanSrc)}"
+              alt="${safeAlt}"
+              referrerpolicy="no-referrer"
+              class="${extraClasses}"
+              onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='flex';"
+            />
+            ${fallbackHtml}
+          `;
+        }
+
+        function highlightSubstring(text, query) {
+          const q = query.trim();
+          if (!q) return escapeHtml(text);
+          const idx = text.toLowerCase().indexOf(q.toLowerCase());
+          if (idx === -1) return escapeHtml(text);
+          return (
+            escapeHtml(text.slice(0, idx)) +
+            `<span class="font-semibold text-indigo-700">${escapeHtml(text.slice(idx, idx + q.length))}</span>` +
+            escapeHtml(text.slice(idx + q.length))
+          );
+        }
+
+        // =========================================================================
+        // 3. APPLICATION STATE
+        // =========================================================================
+        const initialProps = loadProperties();
+        const initialTenant = loadTenantProfile();
+
+        const state = {
+          role: 'landing', // 'landing' | 'landlord' | 'tenant'
+          properties: initialProps,
+          tenantProfile: initialTenant,
+          visitRequests: loadVisitRequests(),
+
+          // Landlord state
+          landlord: {
+            selectedPropertyId: initialProps[0] ? initialProps[0].id : 'new',
+            draft: initialProps[0] ? deepClone(initialProps[0]) : createEmptyProperty(),
+            roomCountInputs: {},
+            formErrors: {},
+            isDirty: false,
+            editingRoomRef: null, // { floorId, roomId }
+            modalDraft: null,
+          },
+
+          // Tenant state
+          tenant: {
+            isEditingProfile: !initialTenant,
+            formValues: {
+              fullName: initialTenant?.fullName || '',
+              phone: initialTenant?.phone || '',
+              email: initialTenant?.email || '',
+              preferredLocation: initialTenant?.preferredLocation || initialProps[0]?.location || '',
+            },
+            formErrors: {},
+            hostelQuery: '',
+            isDropdownOpen: false,
+            highlightedIndex: 0,
+            expandedPropertyId: null,
+            selectedRoomCtx: null, // { propertyId, floorId, roomId }
+            activeImageIdx: 0,
+            showContactPanel: false,
+            copiedPhone: false,
+          },
+        };
+
+        function syncRoomCountInputsFromDraft() {
+          const map = {};
+          for (const fl of state.landlord.draft.floors) {
+            map[fl.id] = String(fl.rooms.length);
+          }
+          state.landlord.roomCountInputs = map;
+        }
+        syncRoomCountInputsFromDraft();
+
+        let occupancyChartInstance = null;
+
+        // =========================================================================
+        // 4. TOAST NOTIFICATIONS
+        // =========================================================================
+        function showToast(title, description = '', variant = 'success') {
+          const container = document.getElementById('toast-container');
+          const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          const iconSvg =
+            variant === 'success'
+              ? `<svg class="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>`
+              : variant === 'error'
+              ? `<svg class="mt-0.5 h-5 w-5 shrink-0 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`
+              : `<svg class="mt-0.5 h-5 w-5 shrink-0 text-indigo-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+
+          const el = document.createElement('div');
+          el.id = id;
+          el.setAttribute('role', 'status');
+          el.className = 'animate-toast pointer-events-auto flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-lg';
+          el.innerHTML = `
+            ${iconSvg}
+            <div class="min-w-0 flex-1">
+              <p class="text-sm font-semibold text-slate-900">${escapeHtml(title)}</p>
+              ${description ? `<p class="mt-0.5 text-xs leading-relaxed text-slate-600">${escapeHtml(description)}</p>` : ''}
+            </div>
+            <button type="button" class="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700" aria-label="Dismiss notification">
+              <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+          `;
+
+          el.querySelector('button').addEventListener('click', () => el.remove());
+          while (container.children.length >= 3) {
+            container.firstElementChild.remove();
+          }
+          container.appendChild(el);
+          window.setTimeout(() => {
+            if (el.parentNode) el.remove();
+          }, 4200);
+        }
+
+        // =========================================================================
+        // 5. NAVIGATION & ROLE SWITCHING
+        // =========================================================================
+        function updateNavActiveStyles() {
+          document.querySelectorAll('.nav-link').forEach((btn) => {
+            const target = btn.getAttribute('data-nav-role');
+            if (target === state.role) {
+              btn.classList.add('border-indigo-600', 'text-slate-900');
+              btn.classList.remove('border-transparent', 'text-slate-600');
+            } else {
+              btn.classList.remove('border-indigo-600', 'text-slate-900');
+              btn.classList.add('border-transparent', 'text-slate-600', 'hover:border-slate-300', 'hover:text-slate-900');
+            }
+          });
+        }
+
+        function setRole(nextRole) {
+          destroyOccupancyChart();
+          state.role = nextRole;
+          state.landlord.editingRoomRef = null;
+          state.landlord.modalDraft = null;
+          state.tenant.selectedRoomCtx = null;
+          render();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // =========================================================================
+        // 6. CHART.JS LIVE OCCUPANCY DOUGHNUT
+        // =========================================================================
+        function destroyOccupancyChart() {
+          if (occupancyChartInstance) {
+            occupancyChartInstance.destroy();
+            occupancyChartInstance = null;
+          }
+        }
+
+        function renderOrUpdateOccupancyChart() {
+          const canvas = document.getElementById('occupancy-doughnut-canvas');
+          if (!canvas || typeof window.Chart === 'undefined') return;
+
+          const stats = getPropertyStats(state.landlord.draft);
+          const total = stats.availableRooms + stats.occupiedRooms;
+          const hasRooms = total > 0;
+          const dataValues = hasRooms ? [stats.availableRooms, stats.occupiedRooms] : [1];
+          const labels = hasRooms ? ['Available', 'Occupied'] : ['No rooms yet'];
+          const bgColors = hasRooms ? ['#10B981', '#F43F5E'] : ['#E2E8F0'];
+          const hoverColors = hasRooms ? ['#059669', '#E11D48'] : ['#CBD5E1'];
+
+          const pctEl = document.getElementById('chart-center-pct');
+          const availEl = document.getElementById('chart-legend-available');
+          const occEl = document.getElementById('chart-legend-occupied');
+          if (pctEl) pctEl.textContent = hasRooms ? `${stats.occupancyRate}%` : '—';
+          if (availEl) availEl.textContent = String(stats.availableRooms);
+          if (occEl) occEl.textContent = String(stats.occupiedRooms);
+
+          if (occupancyChartInstance && occupancyChartInstance.canvas === canvas) {
+            occupancyChartInstance.data.labels = labels;
+            occupancyChartInstance.data.datasets[0].data = dataValues;
+            occupancyChartInstance.data.datasets[0].backgroundColor = bgColors;
+            occupancyChartInstance.data.datasets[0].hoverBackgroundColor = hoverColors;
+            occupancyChartInstance.update('active');
+            return;
+          }
+
+          destroyOccupancyChart();
+          occupancyChartInstance = new window.Chart(canvas, {
+            type: 'doughnut',
+            data: {
+              labels,
+              datasets: [
+                {
+                  data: dataValues,
+                  backgroundColor: bgColors,
+                  hoverBackgroundColor: hoverColors,
+                  borderWidth: 2,
+                  borderColor: '#FFFFFF',
+                  hoverOffset: 3,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              cutout: '72%',
+              animation: { duration: 300 },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  enabled: true,
+                  backgroundColor: '#0F172A',
+                  padding: 10,
+                  cornerRadius: 8,
+                  callbacks: {
+                    label(ctx) {
+                      if (!hasRooms) return ' Add rooms to track occupancy';
+                      const val = Number(ctx.parsed) || 0;
+                      const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                      return ` ${ctx.label}: ${val} room${val === 1 ? '' : 's'} (${pct}%)`;
+                    },
+                  },
+                },
+              },
+            },
+          });
+        }
+
+        // =========================================================================
+        // 7. VIEW 1: LANDING SCREEN
+        // =========================================================================
+        function renderLanding() {
+          const uniqueLocations = Array.from(new Set(state.properties.map((p) => p.location.trim()).filter(Boolean)));
+          const totals = state.properties.reduce(
+            (acc, prop) => {
+              const s = getPropertyStats(prop);
+              acc.floors += s.totalFloors;
+              acc.rooms += s.totalRooms;
+              acc.available += s.availableRooms;
+              return acc;
+            },
+            { floors: 0, rooms: 0, available: 0 }
+          );
+
+          return `
+            <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+              <section class="grid grid-cols-1 items-stretch gap-8 lg:grid-cols-12">
+                <div class="flex flex-col justify-center lg:col-span-7">
+                  <p class="text-sm font-medium text-indigo-600">Hostel &amp; PG Floor-Plan Management</p>
+                  <h1 class="mt-3 max-w-2xl font-display text-3xl font-bold tracking-tight text-slate-900 sm:text-5xl sm:leading-[1.12]" style="text-wrap: balance;">
+                    Visual floor plans and real-time room availability for student housing.
+                  </h1>
+                  <p class="mt-4 max-w-xl text-base leading-relaxed text-slate-600">
+                    StayGrid connects property owners and students through clear 2D floor grids—showing
+                    exact room rents, utility inclusions, maintenance records, and live occupancy without phone tag.
+                  </p>
+                  <div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-slate-500">
+                    <span>${state.properties.length} Listed Properties</span>
+                    <span aria-hidden="true">·</span>
+                    <span>${uniqueLocations.length} Neighborhoods</span>
+                    <span aria-hidden="true">·</span>
+                    <span class="font-mono font-medium text-emerald-700 tabular-nums">${totals.available} Rooms Available Now</span>
+                  </div>
+                </div>
+
+                <div class="lg:col-span-5">
+                  <div class="relative h-64 w-full overflow-hidden rounded-2xl border border-slate-200 bg-white sm:h-72 lg:h-full">
+                    ${renderImageMarkup(SEED_IMAGES.commonLounge, 'Sunlit modern student hostel common lounge and study hall', 'StayGrid Student Residences')}
+                    <div class="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950/80 via-slate-950/35 to-transparent p-5">
+                      <p class="text-sm font-semibold text-white">Instant Sync Across Landlord &amp; Tenant Views</p>
+                      <p class="mt-0.5 text-xs text-slate-200">${totals.floors} mapped floors across ${escapeHtml(uniqueLocations.join(' · '))}</p>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="role-selection-grid" aria-labelledby="choose-role-heading" class="mt-12">
+                <div class="mb-6">
+                  <h2 id="choose-role-heading" class="font-display text-2xl font-bold tracking-tight text-slate-900">
+                    Choose how you want to use StayGrid
+                  </h2>
+                  <p class="mt-1 text-sm text-slate-600">
+                    Select your workspace below. You can switch roles at any time from the top bar.
+                  </p>
+                </div>
+
+                <div class="grid grid-cols-1 items-stretch gap-6 md:grid-cols-2">
+                  <!-- Student / Tenant Card -->
+                  <article
+                    data-pick-role="tenant"
+                    role="button"
+                    tabindex="0"
+                    class="group flex cursor-pointer flex-col justify-between rounded-2xl border border-slate-200 bg-white p-7 transition-all duration-150 hover:border-indigo-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  >
+                    <div>
+                      <div class="flex items-center justify-between">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+                          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"></path>
+                            <path d="M22 10v6"></path>
+                            <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path>
+                          </svg>
+                        </div>
+                        <span class="font-mono text-xs font-medium text-emerald-700 tabular-nums">${totals.available} open rooms</span>
+                      </div>
+                      <h3 class="mt-5 font-display text-xl font-bold text-slate-900">Student / Tenant</h3>
+                      <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                        Browse hostels and PGs in your preferred neighborhood, search hostel names with
+                        predictive typing, inspect color-coded 2D floor plans, and review rent, utility
+                        inclusions, photos, and maintenance notes before scheduling a visit.
+                      </p>
+                      <div class="mt-6 grid grid-cols-1 gap-2.5 border-t border-slate-100 pt-5 text-sm text-slate-700 sm:grid-cols-2">
+                        <span>Location &amp; predictive search</span>
+                        <span>Transparent utility bills</span>
+                      </div>
+                    </div>
+                    <div class="mt-7">
+                      <button
+                        type="button"
+                        data-pick-role="tenant"
+                        class="inline-flex min-h-[44px] w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700 sm:w-auto"
+                      >
+                        <span>Continue as Student / Tenant</span>
+                        <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                      </button>
+                    </div>
+                  </article>
+
+                  <!-- Landlord / Property Owner Card -->
+                  <article
+                    data-pick-role="landlord"
+                    role="button"
+                    tabindex="0"
+                    class="group flex cursor-pointer flex-col justify-between rounded-2xl border border-slate-200 bg-white p-7 transition-all duration-150 hover:border-slate-400 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+                  >
+                    <div>
+                      <div class="flex items-center justify-between">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-800 transition-colors group-hover:bg-slate-900 group-hover:text-white">
+                          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect>
+                            <path d="M9 22v-4h6v4"></path>
+                            <path d="M8 6h.01"></path><path d="M16 6h.01"></path><path d="M12 6h.01"></path>
+                            <path d="M12 10h.01"></path><path d="M12 14h.01"></path><path d="M16 10h.01"></path>
+                            <path d="M16 14h.01"></path><path d="M8 10h.01"></path><path d="M8 14h.01"></path>
+                          </svg>
+                        </div>
+                        <span class="font-mono text-xs font-medium text-slate-600 tabular-nums">${totals.rooms} total units</span>
+                      </div>
+                      <h3 class="mt-5 font-display text-xl font-bold text-slate-900">Landlord / Property Owner</h3>
+                      <p class="mt-2 text-sm leading-relaxed text-slate-600">
+                        Set up your hostel or PG, add floors dynamically, auto-generate 2D room grids,
+                        upload room photos, configure electricity/water/gas inclusions, and monitor live
+                        occupancy with real-time Chart.js analytics.
+                      </p>
+                      <div class="mt-6 grid grid-cols-1 gap-2.5 border-t border-slate-100 pt-5 text-sm text-slate-700 sm:grid-cols-2">
+                        <span>Dynamic 2D floor builder</span>
+                        <span>Live occupancy analytics</span>
+                      </div>
+                    </div>
+                    <div class="mt-7">
+                      <button
+                        type="button"
+                        data-pick-role="landlord"
+                        class="inline-flex min-h-[44px] w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-slate-800 sm:w-auto"
+                      >
+                        <span>Continue as Landlord</span>
+                        <svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                      </button>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section aria-label="Live platform inventory summary" class="mt-10 grid grid-cols-2 gap-4 border-t border-slate-200 pt-8 sm:grid-cols-4">
+                <div>
+                  <p class="text-xs font-medium text-slate-500">Active Hostels &amp; PGs</p>
+                  <p class="mt-1 font-mono text-2xl font-semibold text-slate-900 tabular-nums">${state.properties.length}</p>
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-slate-500">Mapped Floors</p>
+                  <p class="mt-1 font-mono text-2xl font-semibold text-slate-900 tabular-nums">${totals.floors}</p>
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-slate-500">Total Rooms Listed</p>
+                  <p class="mt-1 font-mono text-2xl font-semibold text-slate-900 tabular-nums">${totals.rooms}</p>
+                </div>
+                <div>
+                  <p class="text-xs font-medium text-slate-500">Ready to Move In</p>
+                  <p class="mt-1 font-mono text-2xl font-semibold text-emerald-700 tabular-nums">${totals.available}</p>
+                </div>
+              </section>
+            </div>
+          `;
+        }
+
+        // =========================================================================
+        // 8. VIEW 2: LANDLORD / PROPERTY OWNER STUDIO
+        // =========================================================================
+        function renderLandlord() {
+          const { draft, selectedPropertyId, formErrors, isDirty, roomCountInputs } = state.landlord;
+          const stats = getPropertyStats(draft);
+          const existingLocations = Array.from(new Set(state.properties.map((p) => p.location.trim()).filter(Boolean)));
+
+          const propOptions = state.properties
+            .map(
+              (p) =>
+                `<option value="${escapeHtml(p.id)}" ${p.id === selectedPropertyId ? 'selected' : ''}>${escapeHtml(p.name)} — ${escapeHtml(p.location)}</option>`
+            )
+            .join('');
+
+          const floorsHtml =
+            draft.floors.length === 0
+              ? `
+                <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+                  <h3 class="font-display text-base font-semibold text-slate-900">No floors added yet</h3>
+                  <p class="mt-1 max-w-md text-sm text-slate-500">
+                    Add your first floor to start generating a 2D interactive room grid for your property.
+                  </p>
+                  <button type="button" id="add-first-floor-btn" class="mt-5 inline-flex min-h-[42px] items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">
+                    + Add Ground Floor
+                  </button>
+                </div>
+              `
+              : `<div class="space-y-6">${draft.floors
+                  .map((floor, floorIndex) => {
+                    const floorAvail = floor.rooms.filter((r) => r.status === 'available').length;
+                    const floorOcc = floor.rooms.length - floorAvail;
+                    const countVal = roomCountInputs[floor.id] ?? String(floor.rooms.length);
+
+                    const roomsGridHtml = floor.rooms
+                      .map((room) => {
+                        const isAvail = room.status === 'available';
+                        const incl = [room.utilities.electricity, room.utilities.water, room.utilities.gas].filter(Boolean).length;
+                        return `
+                          <div
+                            data-open-room-editor="${escapeHtml(floor.id)}::${escapeHtml(room.id)}"
+                            role="button"
+                            tabindex="0"
+                            class="group relative flex cursor-pointer flex-col justify-between rounded-xl border p-3.5 text-left transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
+                              isAvail
+                                ? 'border-emerald-300 bg-emerald-50/55 hover:border-emerald-400'
+                                : 'border-rose-300 bg-rose-50/55 hover:border-rose-400'
+                            }"
+                          >
+                            <div class="flex items-start justify-between gap-2">
+                              <span class="font-mono text-base font-bold text-slate-900 tabular-nums">${escapeHtml(room.label)}</span>
+                              <button
+                                type="button"
+                                data-quick-toggle="${escapeHtml(floor.id)}::${escapeHtml(room.id)}"
+                                title="Switch to ${isAvail ? 'Occupied' : 'Available'}"
+                                aria-label="Toggle room ${escapeHtml(room.label)} status"
+                                class="rounded-md p-1 text-slate-400 transition-colors hover:bg-white/90 hover:text-slate-800"
+                              >
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                  <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                  <path d="M3 3v5h5"/>
+                                  <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                                  <path d="M16 16h5v5"/>
+                                </svg>
+                              </button>
+                            </div>
+                            <div class="mt-2.5">
+                              <p class="text-xs font-semibold ${isAvail ? 'text-emerald-700' : 'text-rose-700'}">
+                                ${isAvail ? 'Available' : 'Occupied'}
+                              </p>
+                              <p class="mt-0.5 font-mono text-sm font-semibold text-slate-900 tabular-nums">
+                                ${escapeHtml(formatINR(room.rent))}<span class="font-sans text-[11px] font-normal text-slate-500">/mo</span>
+                              </p>
+                            </div>
+                            <div class="mt-3 flex items-center justify-between border-t border-slate-200/70 pt-2 text-[11px] text-slate-500">
+                              <span>${incl}/3 bills incl.</span>
+                              ${
+                                room.images && room.images.length > 0
+                                  ? `<span class="font-mono tabular-nums">${room.images.length} img</span>`
+                                  : ''
+                              }
+                            </div>
+                          </div>
+                        `;
+                      })
+                      .join('');
+
+                    return `
+                      <div class="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+                        <div class="flex flex-col justify-between gap-4 border-b border-slate-100 pb-4 md:flex-row md:items-center">
+                          <div class="flex flex-wrap items-center gap-3">
+                            <input
+                              type="text"
+                              data-floor-name-input="${escapeHtml(floor.id)}"
+                              aria-label="Floor ${floorIndex + 1} name"
+                              value="${escapeHtml(floor.name)}"
+                              class="w-44 rounded-lg border border-transparent bg-slate-50 px-2.5 py-1.5 font-display text-base font-bold text-slate-900 transition-colors hover:border-slate-200 focus:border-indigo-500 focus:bg-white focus:outline-none"
+                            />
+                            <div class="flex items-center gap-2 text-xs text-slate-500">
+                              <span class="font-mono font-medium text-emerald-700 tabular-nums">${floorAvail} Available</span>
+                              <span aria-hidden="true">·</span>
+                              <span class="font-mono font-medium text-rose-700 tabular-nums">${floorOcc} Occupied</span>
+                            </div>
+                          </div>
+
+                          <div class="flex flex-wrap items-center gap-2.5">
+                            <label for="room-count-${escapeHtml(floor.id)}" class="text-xs font-medium text-slate-600">Rooms:</label>
+                            <input
+                              id="room-count-${escapeHtml(floor.id)}"
+                              data-room-count-input="${escapeHtml(floor.id)}"
+                              type="number"
+                              min="1"
+                              max="30"
+                              value="${escapeHtml(countVal)}"
+                              class="w-20 rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 font-mono text-sm text-slate-900 tabular-nums focus:border-indigo-600 focus:outline-none"
+                            />
+                            <button
+                              type="button"
+                              data-generate-rooms="${escapeHtml(floor.id)}::${floorIndex}"
+                              class="min-h-[36px] whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-800 transition-colors hover:bg-slate-50"
+                            >
+                              Update Grid
+                            </button>
+                            <button
+                              type="button"
+                              data-remove-floor="${escapeHtml(floor.id)}"
+                              class="inline-flex min-h-[36px] items-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-500 transition-colors hover:bg-rose-50 hover:text-rose-700"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+
+                        <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                          ${roomsGridHtml}
+                        </div>
+                      </div>
+                    `;
+                  })
+                  .join('')}</div>`;
+
+          return `
+            <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+              <!-- Workspace Header -->
+              <div class="flex flex-col justify-between gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end">
+                <div>
+                  <p class="text-xs font-medium text-indigo-600">Landlord / Property Owner Studio</p>
+                  <h1 id="landlord-heading-title" class="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                    ${escapeHtml(draft.name.trim() || 'New Hostel / PG Listing')}
+                  </h1>
+                  <p class="mt-1 text-sm text-slate-600">
+                    Configure owner contacts, build 2D floor layouts, and publish live availability to students.
+                  </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3">
+                  <select
+                    id="property-selector"
+                    aria-label="Select property to manage"
+                    class="min-h-[42px] rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-800 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+                  >
+                    ${propOptions}
+                    <option value="new" ${selectedPropertyId === 'new' ? 'selected' : ''}>+ Create New Hostel / PG</option>
+                  </select>
+
+                  <button
+                    type="button"
+                    id="new-property-btn"
+                    class="inline-flex min-h-[42px] shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                  >
+                    + New Property
+                  </button>
+
+                  <button
+                    type="button"
+                    data-save-property-btn
+                    class="inline-flex min-h-[42px] shrink-0 items-center gap-2 whitespace-nowrap rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+                  >
+                    Save Property
+                  </button>
+                </div>
+              </div>
+
+              <!-- Live Occupancy Analytics Strip + Chart.js Doughnut -->
+              <section aria-label="Live occupancy analytics" class="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+                <div class="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
+                  <div class="flex-1">
+                    <div class="flex items-center justify-between gap-4">
+                      <h2 class="font-display text-base font-semibold text-slate-900">Live Occupancy Analytics</h2>
+                      <span id="unsaved-indicator" class="text-xs font-medium text-amber-700 ${isDirty ? '' : 'hidden'}">
+                        Unsaved changes — click Save Property to publish
+                      </span>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4 sm:divide-x sm:divide-slate-200">
+                      <div class="sm:pr-4">
+                        <p class="text-xs font-medium text-slate-500">Total Floors</p>
+                        <p class="mt-1 font-mono text-2xl font-semibold text-slate-900 tabular-nums">${stats.totalFloors}</p>
+                      </div>
+                      <div class="sm:px-4">
+                        <p class="text-xs font-medium text-slate-500">Total Rooms</p>
+                        <p class="mt-1 font-mono text-2xl font-semibold text-slate-900 tabular-nums">${stats.totalRooms}</p>
+                      </div>
+                      <div class="sm:px-4">
+                        <p class="text-xs font-medium text-emerald-700">Available</p>
+                        <p class="mt-1 font-mono text-2xl font-semibold text-emerald-700 tabular-nums">${stats.availableRooms}</p>
+                      </div>
+                      <div class="sm:pl-4">
+                        <p class="text-xs font-medium text-rose-700">Occupied</p>
+                        <p class="mt-1 font-mono text-2xl font-semibold text-rose-700 tabular-nums">${stats.occupiedRooms}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="border-t border-slate-200 pt-5 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
+                    <div class="flex items-center gap-5">
+                      <div class="relative h-28 w-28 shrink-0">
+                        <canvas id="occupancy-doughnut-canvas" aria-label="Room occupancy doughnut chart"></canvas>
+                        <div class="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
+                          <span id="chart-center-pct" class="font-mono text-lg font-semibold leading-none text-slate-900 tabular-nums">
+                            ${stats.totalRooms > 0 ? stats.occupancyRate + '%' : '—'}
+                          </span>
+                          <span class="mt-1 text-[11px] font-medium text-slate-500">Occupied</span>
+                        </div>
+                      </div>
+                      <div class="flex flex-col gap-2 text-sm">
+                        <div class="flex items-center justify-between gap-6">
+                          <span class="flex items-center gap-2 text-slate-700">
+                            <span class="h-2.5 w-2.5 rounded-sm bg-emerald-500" aria-hidden="true"></span>
+                            Available
+                          </span>
+                          <span id="chart-legend-available" class="font-mono font-semibold text-emerald-700 tabular-nums">${stats.availableRooms}</span>
+                        </div>
+                        <div class="flex items-center justify-between gap-6">
+                          <span class="flex items-center gap-2 text-slate-700">
+                            <span class="h-2.5 w-2.5 rounded-sm bg-rose-500" aria-hidden="true"></span>
+                            Occupied
+                          </span>
+                          <span id="chart-legend-occupied" class="font-mono font-semibold text-rose-700 tabular-nums">${stats.occupiedRooms}</span>
+                        </div>
+                        <div class="border-t border-slate-100 pt-1.5 text-xs text-slate-500">
+                          Updates live as rooms change
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Owner & Property Setup Form -->
+              <section aria-labelledby="property-setup-heading" class="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+                <div class="mb-5">
+                  <h2 id="property-setup-heading" class="font-display text-lg font-bold text-slate-900">Owner &amp; Property Details</h2>
+                  <p class="mt-0.5 text-sm text-slate-500">Tenants see your contact details and property location when browsing rooms.</p>
+                </div>
+
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <label for="owner-name" class="block text-sm font-medium text-slate-700">Owner Full Name <span class="text-rose-600">*</span></label>
+                    <input id="owner-name" data-landlord-field="owner_name" type="text" value="${escapeHtml(draft.owner.name)}" placeholder="e.g. Rajeshwari Menon"
+                      class="mt-1.5 block w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${formErrors.owner_name ? 'border-rose-400 focus:border-rose-500' : 'border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'}" />
+                    ${formErrors.owner_name ? `<p class="mt-1 text-xs text-rose-600">${escapeHtml(formErrors.owner_name)}</p>` : ''}
+                  </div>
+
+                  <div>
+                    <label for="owner-phone" class="block text-sm font-medium text-slate-700">Phone Number <span class="text-rose-600">*</span></label>
+                    <input id="owner-phone" data-landlord-field="owner_phone" type="tel" value="${escapeHtml(draft.owner.phone)}" placeholder="+91 98450 32140"
+                      class="mt-1.5 block w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${formErrors.owner_phone ? 'border-rose-400 focus:border-rose-500' : 'border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'}" />
+                    ${formErrors.owner_phone ? `<p class="mt-1 text-xs text-rose-600">${escapeHtml(formErrors.owner_phone)}</p>` : ''}
+                  </div>
+
+                  <div>
+                    <label for="owner-email" class="block text-sm font-medium text-slate-700">Email Address <span class="text-rose-600">*</span></label>
+                    <input id="owner-email" data-landlord-field="owner_email" type="email" value="${escapeHtml(draft.owner.email)}" placeholder="owner@hostelname.in"
+                      class="mt-1.5 block w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${formErrors.owner_email ? 'border-rose-400 focus:border-rose-500' : 'border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'}" />
+                    ${formErrors.owner_email ? `<p class="mt-1 text-xs text-rose-600">${escapeHtml(formErrors.owner_email)}</p>` : ''}
+                  </div>
+
+                  <div class="lg:col-span-2">
+                    <label for="property-name" class="block text-sm font-medium text-slate-700">Hostel / PG Name <span class="text-rose-600">*</span></label>
+                    <input id="property-name" data-landlord-field="name" type="text" value="${escapeHtml(draft.name)}" placeholder="e.g. Horizon Residency PG"
+                      class="mt-1.5 block w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${formErrors.name ? 'border-rose-400 focus:border-rose-500' : 'border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'}" />
+                    ${formErrors.name ? `<p class="mt-1 text-xs text-rose-600">${escapeHtml(formErrors.name)}</p>` : ''}
+                  </div>
+
+                  <div>
+                    <label for="property-location" class="block text-sm font-medium text-slate-700">Location / Neighborhood <span class="text-rose-600">*</span></label>
+                    <input id="property-location" data-landlord-field="location" type="text" list="staygrid-locations-list" value="${escapeHtml(draft.location)}" placeholder="e.g. Koramangala, Bengaluru"
+                      class="mt-1.5 block w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${formErrors.location ? 'border-rose-400 focus:border-rose-500' : 'border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'}" />
+                    <datalist id="staygrid-locations-list">
+                      ${existingLocations.map((loc) => `<option value="${escapeHtml(loc)}"></option>`).join('')}
+                    </datalist>
+                    ${formErrors.location ? `<p class="mt-1 text-xs text-rose-600">${escapeHtml(formErrors.location)}</p>` : ''}
+                  </div>
+                </div>
+              </section>
+
+              <!-- Dynamic Floor & 2D Room Builder -->
+              <section aria-labelledby="floor-builder-heading" class="mt-8">
+                <div class="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                  <div>
+                    <h2 id="floor-builder-heading" class="font-display text-xl font-bold text-slate-900">
+                      Interactive 2D Floor &amp; Room Builder
+                    </h2>
+                    <p class="mt-0.5 text-sm text-slate-600">
+                      Click any room box to edit rent, utilities, photos, and maintenance notes.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    id="add-floor-btn"
+                    class="inline-flex min-h-[42px] shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+                  >
+                    + Add Floor
+                  </button>
+                </div>
+
+                ${floorsHtml}
+
+                <div class="mt-8 flex flex-col items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center">
+                  <div class="text-sm text-slate-600">
+                    <span class="font-semibold text-slate-900">Ready to publish?</span> Saving stores this property in local storage and makes every floor and room immediately visible to tenants searching in
+                    <span id="publish-location-preview" class="font-medium text-slate-900">${escapeHtml(draft.location.trim() || 'your location')}</span>.
+                  </div>
+                  <button
+                    type="button"
+                    data-save-property-btn
+                    class="inline-flex min-h-[44px] shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-indigo-600 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700"
+                  >
+                    Save Property
+                  </button>
+                </div>
+              </section>
+            </div>
+          `;
+        }
+
+        // =========================================================================
+        // 9. VIEW 3: STUDENT / TENANT PORTAL (WITH PREDICTIVE TYPING SEARCH)
+        // =========================================================================
+        function getPredictiveSuggestions(query, activeLocation) {
+          const q = query.trim().toLowerCase();
+          if (!q) return [];
+          const locNeedle = (activeLocation || '').toLowerCase();
+          return [...state.properties]
+            .filter((p) => p.name.toLowerCase().includes(q))
+            .sort((a, b) => {
+              const aStarts = a.name.toLowerCase().startsWith(q) ? 1 : 0;
+              const bStarts = b.name.toLowerCase().startsWith(q) ? 1 : 0;
+              if (aStarts !== bStarts) return bStarts - aStarts;
+              const aInLoc = locNeedle && a.location.toLowerCase().includes(locNeedle) ? 1 : 0;
+              const bInLoc = locNeedle && b.location.toLowerCase().includes(locNeedle) ? 1 : 0;
+              if (aInLoc !== bInLoc) return bInLoc - aInLoc;
+              return a.name.localeCompare(b.name);
+            })
+            .slice(0, 6);
+        }
+
+        function getInlinePrediction(rawQuery, suggestions) {
+          if (!rawQuery.trim() || suggestions.length === 0) return '';
+          const topName = suggestions[0].name;
+          if (topName.toLowerCase().startsWith(rawQuery.toLowerCase())) {
+            return rawQuery + topName.slice(rawQuery.length);
+          }
+          return '';
+        }
+
+        function getTenantDisplayedProperties() {
+          const activeLocation = (state.tenantProfile?.preferredLocation || state.tenant.formValues.preferredLocation || '').trim();
+          const locNeedle = activeLocation.toLowerCase();
+          const locMatched = locNeedle
+            ? state.properties.filter((p) => p.location.toLowerCase().includes(locNeedle))
+            : state.properties;
+
+          const q = state.tenant.hostelQuery.trim().toLowerCase();
+          if (!q) return locMatched;
+
+          const inLoc = locMatched.filter((p) => p.name.toLowerCase().includes(q));
+          if (inLoc.length > 0) return inLoc;
+          return state.properties.filter((p) => p.name.toLowerCase().includes(q));
+        }
+
+        function renderTenantResultsHtml() {
+          const activeLocation = (state.tenantProfile?.preferredLocation || state.tenant.formValues.preferredLocation || '').trim();
+          const availableLocations = Array.from(new Set(state.properties.map((p) => p.location.trim()).filter(Boolean)));
+          const displayed = getTenantDisplayedProperties();
+          const q = state.tenant.hostelQuery.trim();
+
+          const headingText = q ? `Search Results for “${escapeHtml(q)}”` : `Hostels &amp; PGs in ${escapeHtml(activeLocation)}`;
+          const countLabel = `${displayed.length} ${displayed.length === 1 ? 'property' : 'properties'} found`;
+
+          if (displayed.length === 0) {
+            return `
+              <div class="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 class="font-display text-lg font-bold text-slate-900">${headingText}</h2>
+                <span class="text-xs font-medium text-slate-500">${countLabel}</span>
+              </div>
+              <div class="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
+                <h3 class="font-display text-base font-bold text-slate-900">No hostels or PGs found</h3>
+                <p class="mt-1 max-w-md text-sm text-slate-600">
+                  ${
+                    q
+                      ? `We could not find any hostel matching “${escapeHtml(q)}”. Clear the search or explore one of our active neighborhoods below.`
+                      : `There are currently no listed hostels in “${escapeHtml(activeLocation)}”. Try one of our active locations below or add one in the Landlord Studio.`
+                  }
+                </p>
+                <div class="mt-5 flex flex-wrap items-center justify-center gap-2">
+                  ${
+                    q
+                      ? `<button type="button" id="empty-clear-search-btn" class="min-h-[38px] rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-semibold text-white hover:bg-slate-800">Clear Search</button>`
+                      : ''
+                  }
+                  ${availableLocations
+                    .map(
+                      (loc) =>
+                        `<button type="button" data-quick-location="${escapeHtml(loc)}" class="min-h-[38px] rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:border-indigo-400 hover:text-indigo-700">Explore ${escapeHtml(loc)}</button>`
+                    )
+                    .join('')}
+                </div>
+              </div>
+            `;
+          }
+
+          const cardsHtml = displayed
+            .map((property) => {
+              const pStats = getPropertyStats(property);
+              const cover = getPropertyCoverImage(property);
+              const isExpanded = state.tenant.expandedPropertyId === property.id;
+
+              const floorGridHtml = isExpanded
+                ? `
+                  <div class="border-t border-slate-200 bg-slate-50/75 p-6">
+                    <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <h4 class="font-display text-base font-bold text-slate-900">Interactive 2D Floor Plan — ${escapeHtml(property.name)}</h4>
+                        <p class="text-xs text-slate-500">Select any room box to view full gallery, utility inclusions, and landlord notes.</p>
+                      </div>
+                      <div class="flex items-center gap-4 text-xs font-medium">
+                        <span class="flex items-center gap-1.5 text-emerald-700">
+                          <span class="h-2.5 w-2.5 rounded-sm border border-emerald-400 bg-emerald-100" aria-hidden="true"></span>
+                          Available
+                        </span>
+                        <span class="flex items-center gap-1.5 text-rose-700">
+                          <span class="h-2.5 w-2.5 rounded-sm border border-rose-400 bg-rose-100" aria-hidden="true"></span>
+                          Occupied
+                        </span>
+                      </div>
+                    </div>
+
+                    <div class="space-y-6">
+                      ${property.floors
+                        .map((floor) => {
+                          const flAvail = floor.rooms.filter((r) => r.status === 'available').length;
+                          return `
+                            <div>
+                              <div class="mb-3 flex items-center justify-between border-b border-slate-200 pb-2">
+                                <h5 class="font-display text-sm font-bold text-slate-900">${escapeHtml(floor.name)}</h5>
+                                <span class="font-mono text-xs text-slate-500 tabular-nums">${flAvail} of ${floor.rooms.length} available</span>
+                              </div>
+                              <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                                ${floor.rooms
+                                  .map((room) => {
+                                    const isAvail = room.status === 'available';
+                                    const requested = state.visitRequests.some(
+                                      (vr) => vr.propertyId === property.id && vr.roomId === room.id
+                                    );
+                                    return `
+                                      <button
+                                        type="button"
+                                        data-open-room-detail="${escapeHtml(property.id)}::${escapeHtml(floor.id)}::${escapeHtml(room.id)}"
+                                        class="flex flex-col justify-between rounded-xl border p-3.5 text-left transition-all duration-150 hover:-translate-y-0.5 hover:shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 ${
+                                          isAvail
+                                            ? 'border-emerald-300 bg-emerald-50/75 hover:border-emerald-500'
+                                            : 'border-rose-300 bg-rose-50/75 hover:border-rose-400'
+                                        }"
+                                      >
+                                        <div class="flex items-center justify-between gap-2">
+                                          <span class="font-mono text-base font-bold text-slate-900 tabular-nums">${escapeHtml(room.label)}</span>
+                                          <span class="text-[11px] font-semibold ${isAvail ? 'text-emerald-700' : 'text-rose-700'}">
+                                            ${isAvail ? 'Available' : 'Occupied'}
+                                          </span>
+                                        </div>
+                                        <div class="mt-3">
+                                          <p class="font-mono text-sm font-semibold text-slate-900 tabular-nums">
+                                            ${escapeHtml(formatINR(room.rent))}<span class="font-sans text-[11px] font-normal text-slate-500">/mo</span>
+                                          </p>
+                                          <p class="mt-1 text-[11px] text-slate-500">${requested ? 'Visit requested' : 'Inspect room'}</p>
+                                        </div>
+                                      </button>
+                                    `;
+                                  })
+                                  .join('')}
+                              </div>
+                            </div>
+                          `;
+                        })
+                        .join('')}
+                    </div>
+                  </div>
+                `
+                : '';
+
+              return `
+                <article class="overflow-hidden rounded-2xl border border-slate-200 bg-white transition-shadow hover:shadow-sm">
+                  <div class="grid grid-cols-1 lg:grid-cols-12">
+                    <div class="h-52 bg-slate-100 lg:col-span-4 lg:h-full">
+                      ${renderImageMarkup(cover, `${property.name} room preview`, property.name)}
+                    </div>
+                    <div class="flex flex-col justify-between p-6 lg:col-span-8">
+                      <div>
+                        <div class="flex flex-wrap items-start justify-between gap-4">
+                          <div>
+                            <h3 class="font-display text-xl font-bold text-slate-900">${escapeHtml(property.name)}</h3>
+                            <p class="mt-1 text-sm text-slate-600">${escapeHtml(property.location)}</p>
+                          </div>
+                          <div class="text-left sm:text-right">
+                            <p class="text-xs text-slate-500">Starting from</p>
+                            <p class="font-mono text-xl font-bold text-slate-900 tabular-nums">
+                              ${pStats.minRent > 0 ? escapeHtml(formatINR(pStats.minRent)) : '—'}<span class="font-sans text-xs font-normal text-slate-500">/mo</span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-y border-slate-100 py-3 text-sm">
+                          <span class="font-mono font-semibold text-emerald-700 tabular-nums">${pStats.availableRooms} Available</span>
+                          <span class="text-slate-300" aria-hidden="true">·</span>
+                          <span class="font-mono font-medium text-rose-700 tabular-nums">${pStats.occupiedRooms} Occupied</span>
+                          <span class="text-slate-300" aria-hidden="true">·</span>
+                          <span class="text-slate-600">${pStats.totalFloors} ${pStats.totalFloors === 1 ? 'Floor' : 'Floors'} (${pStats.totalRooms} rooms)</span>
+                        </div>
+
+                        <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-slate-600">
+                          <span class="font-medium text-slate-800">Landlord: ${escapeHtml(property.owner.name)}</span>
+                          <span class="font-mono">${escapeHtml(property.owner.phone)}</span>
+                          <span>${escapeHtml(property.owner.email)}</span>
+                        </div>
+                      </div>
+
+                      <div class="mt-6 flex flex-wrap items-center justify-between gap-4">
+                        <span class="text-xs text-slate-500">Click any room in the floor plan to inspect photos, bills &amp; notes</span>
+                        <button
+                          type="button"
+                          data-toggle-property="${escapeHtml(property.id)}"
+                          class="inline-flex min-h-[42px] shrink-0 items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                            isExpanded
+                              ? 'border border-slate-300 bg-slate-100 text-slate-800 hover:bg-slate-200'
+                              : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                          }"
+                        >
+                          <span>${isExpanded ? 'Hide 2D Floor Plan' : 'View 2D Floor Plan'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  ${floorGridHtml}
+                </article>
+              `;
+            })
+            .join('');
+
+          return `
+            <div class="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+              <h2 class="font-display text-lg font-bold text-slate-900">${headingText}</h2>
+              <span class="text-xs font-medium text-slate-500">${countLabel}</span>
+            </div>
+            <div class="space-y-6">${cardsHtml}</div>
+          `;
+        }
+
+        function updatePredictiveUiOnly() {
+          const activeLocation = (state.tenantProfile?.preferredLocation || state.tenant.formValues.preferredLocation || '').trim();
+          const suggestions = getPredictiveSuggestions(state.tenant.hostelQuery, activeLocation);
+          const inlinePred = getInlinePrediction(state.tenant.hostelQuery, suggestions);
+
+          // Update ghost autocomplete layer
+          const ghostEl = document.getElementById('predictive-ghost');
+          const tabHint = document.getElementById('predictive-tab-hint');
+          const clearBtn = document.getElementById('clear-search-btn');
+
+          if (ghostEl) {
+            if (inlinePred && inlinePred !== state.tenant.hostelQuery) {
+              ghostEl.innerHTML = `<span class="invisible whitespace-pre">${escapeHtml(state.tenant.hostelQuery)}</span><span class="truncate">${escapeHtml(inlinePred.slice(state.tenant.hostelQuery.length))}</span>`;
+            } else {
+              ghostEl.innerHTML = '';
+            }
+          }
+          if (tabHint) {
+            tabHint.classList.toggle('hidden', !(inlinePred && inlinePred !== state.tenant.hostelQuery));
+          }
+          if (clearBtn) {
+            clearBtn.classList.toggle('hidden', !state.tenant.hostelQuery);
+          }
+
+          // Update predictive dropdown
+          const dropdown = document.getElementById('hostel-predictions-listbox');
+          if (dropdown) {
+            if (state.tenant.isDropdownOpen && suggestions.length > 0) {
+              dropdown.classList.remove('hidden');
+              dropdown.innerHTML = suggestions
+                .map((prop, idx) => {
+                  const pStats = getPropertyStats(prop);
+                  const isHi = idx === state.tenant.highlightedIndex;
+                  const inPref = !activeLocation || prop.location.toLowerCase().includes(activeLocation.toLowerCase());
+                  return `
+                    <li
+                      role="option"
+                      aria-selected="${isHi ? 'true' : 'false'}"
+                      data-select-prediction="${escapeHtml(prop.id)}"
+                      data-prediction-idx="${idx}"
+                      class="flex cursor-pointer items-center justify-between gap-4 px-4 py-2.5 text-sm transition-colors ${isHi ? 'bg-indigo-50/80' : 'hover:bg-slate-50'}"
+                    >
+                      <div class="min-w-0">
+                        <p class="truncate font-medium text-slate-900">${highlightSubstring(prop.name, state.tenant.hostelQuery)}</p>
+                        <p class="mt-0.5 truncate text-xs text-slate-500">${escapeHtml(prop.location)}${!inPref ? ' · Different location' : ''}</p>
+                      </div>
+                      <span class="shrink-0 font-mono text-xs font-medium text-emerald-700 tabular-nums">${pStats.availableRooms} avail.</span>
+                    </li>
+                  `;
+                })
+                .join('');
+            } else {
+              dropdown.classList.add('hidden');
+              dropdown.innerHTML = '';
+            }
+          }
+
+          // Update results container without touching search input focus!
+          const resultsSection = document.getElementById('tenant-results-section');
+          if (resultsSection) {
+            resultsSection.innerHTML = renderTenantResultsHtml();
+          }
+        }
+
+        function renderTenant() {
+          const { isEditingProfile, formValues, formErrors, hostelQuery } = state.tenant;
+          const availableLocations = Array.from(new Set(state.properties.map((p) => p.location.trim()).filter(Boolean)));
+          const activeLocation = (state.tenantProfile?.preferredLocation || formValues.preferredLocation || '').trim();
+
+          if (isEditingProfile) {
+            return `
+              <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+                <div class="border-b border-slate-200 pb-6">
+                  <p class="text-xs font-medium text-indigo-600">Student / Tenant Portal</p>
+                  <h1 class="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Find your hostel or PG room</h1>
+                  <p class="mt-1 text-sm text-slate-600">Inspect live 2D floor plans, transparent monthly rent, utility bills, and maintenance notes.</p>
+                </div>
+
+                <section aria-labelledby="tenant-onboarding-heading" class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 sm:p-7">
+                  <div class="mb-5">
+                    <h2 id="tenant-onboarding-heading" class="font-display text-lg font-bold text-slate-900">Your Details &amp; Preferred Location</h2>
+                    <p class="mt-0.5 text-sm text-slate-500">Enter your contact information and preferred area to see matching hostels and request visits.</p>
+                  </div>
+
+                  <form id="tenant-onboarding-form" novalidate class="space-y-5">
+                    <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+                      <div>
+                        <label for="tenant-name" class="block text-sm font-medium text-slate-700">Full Name <span class="text-rose-600">*</span></label>
+                        <input id="tenant-name" name="fullName" type="text" value="${escapeHtml(formValues.fullName)}" placeholder="e.g. Aarav Kulkarni"
+                          class="mt-1.5 block w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${formErrors.fullName ? 'border-rose-400' : 'border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'}" />
+                        ${formErrors.fullName ? `<p class="mt-1 text-xs text-rose-600">${escapeHtml(formErrors.fullName)}</p>` : ''}
+                      </div>
+
+                      <div>
+                        <label for="tenant-phone" class="block text-sm font-medium text-slate-700">Phone Number <span class="text-rose-600">*</span></label>
+                        <input id="tenant-phone" name="phone" type="tel" value="${escapeHtml(formValues.phone)}" placeholder="+91 98765 43210"
+                          class="mt-1.5 block w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${formErrors.phone ? 'border-rose-400' : 'border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'}" />
+                        ${formErrors.phone ? `<p class="mt-1 text-xs text-rose-600">${escapeHtml(formErrors.phone)}</p>` : ''}
+                      </div>
+
+                      <div>
+                        <label for="tenant-email" class="block text-sm font-medium text-slate-700">Email Address <span class="text-rose-600">*</span></label>
+                        <input id="tenant-email" name="email" type="email" value="${escapeHtml(formValues.email)}" placeholder="aarav.k@university.edu"
+                          class="mt-1.5 block w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${formErrors.email ? 'border-rose-400' : 'border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'}" />
+                        ${formErrors.email ? `<p class="mt-1 text-xs text-rose-600">${escapeHtml(formErrors.email)}</p>` : ''}
+                      </div>
+
+                      <div>
+                        <label for="tenant-location" class="block text-sm font-medium text-slate-700">Preferred Location <span class="text-rose-600">*</span></label>
+                        <input id="tenant-location" name="preferredLocation" type="text" list="tenant-locations-datalist" value="${escapeHtml(formValues.preferredLocation)}" placeholder="Type or choose a neighborhood..."
+                          class="mt-1.5 block w-full rounded-lg border px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none ${formErrors.preferredLocation ? 'border-rose-400' : 'border-slate-300 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100'}" />
+                        <datalist id="tenant-locations-datalist">
+                          ${availableLocations.map((loc) => `<option value="${escapeHtml(loc)}"></option>`).join('')}
+                        </datalist>
+                        ${formErrors.preferredLocation ? `<p class="mt-1 text-xs text-rose-600">${escapeHtml(formErrors.preferredLocation)}</p>` : ''}
+                      </div>
+                    </div>
+
+                    ${
+                      availableLocations.length > 0
+                        ? `
+                      <div class="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-500">
+                        <span>Available locations:</span>
+                        ${availableLocations
+                          .map((loc) => {
+                            const active = formValues.preferredLocation.trim().toLowerCase() === loc.toLowerCase();
+                            return `<button type="button" data-pick-onboarding-loc="${escapeHtml(loc)}" class="rounded-md border px-2.5 py-1 text-xs font-medium transition-colors ${active ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300 hover:bg-slate-100'}">${escapeHtml(loc)}</button>`;
+                          })
+                          .join('')}
+                      </div>
+                    `
+                        : ''
+                    }
+
+                    <div class="flex flex-wrap items-center justify-end gap-3 border-t border-slate-100 pt-5">
+                      ${
+                        state.tenantProfile
+                          ? `<button type="button" id="cancel-tenant-edit-btn" class="min-h-[42px] whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>`
+                          : ''
+                      }
+                      <button type="submit" class="min-h-[42px] whitespace-nowrap rounded-lg bg-indigo-600 px-6 py-2 text-sm font-semibold text-white transition-colors hover:bg-indigo-700">
+                        Explore Hostels &amp; PGs
+                      </button>
+                    </div>
+                  </form>
+                </section>
+              </div>
+            `;
+          }
+
+          return `
+            <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+              <div class="border-b border-slate-200 pb-6">
+                <p class="text-xs font-medium text-indigo-600">Student / Tenant Portal</p>
+                <h1 class="mt-1 font-display text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">Find your hostel or PG room</h1>
+                <p class="mt-1 text-sm text-slate-600">Inspect live 2D floor plans, transparent monthly rent, utility bills, and maintenance notes.</p>
+              </div>
+
+              <!-- Compact Tenant Profile Summary Bar -->
+              <section aria-label="Active tenant search profile" class="mt-6 flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center">
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+                  <span class="font-semibold text-slate-900">${escapeHtml(state.tenantProfile?.fullName || '')}</span>
+                  <span class="text-slate-300" aria-hidden="true">·</span>
+                  <span class="text-slate-700">Preferred Location: <strong class="font-semibold text-slate-900">${escapeHtml(activeLocation)}</strong></span>
+                  <span class="hidden text-slate-300 md:inline" aria-hidden="true">·</span>
+                  <span class="hidden text-xs text-slate-500 md:inline">${escapeHtml(state.tenantProfile?.phone || '')} · ${escapeHtml(state.tenantProfile?.email || '')}</span>
+                </div>
+                <button
+                  type="button"
+                  id="edit-tenant-profile-btn"
+                  class="inline-flex min-h-[38px] shrink-0 items-center gap-1.5 self-start whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50 sm:self-auto"
+                >
+                  Edit Details / Location
+                </button>
+              </section>
+
+              <!-- Predictive Typing Search Bar (no extra filters or sorting controls) -->
+              <section aria-label="Search hostels by name" class="mt-6">
+                <div id="predictive-search-box" class="relative max-w-2xl">
+                  <label for="hostel-predictive-search" class="sr-only">Search hostel or PG by name</label>
+                  <div class="relative flex items-center rounded-xl border border-slate-300 bg-white transition-colors focus-within:border-indigo-600 focus-within:ring-2 focus-within:ring-indigo-100">
+                    <svg class="pointer-events-none ml-4 h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+                    </svg>
+                    <div class="relative flex-1 overflow-hidden">
+                      <div id="predictive-ghost" aria-hidden="true" class="pointer-events-none absolute inset-0 flex items-center truncate px-3 text-sm text-slate-400 select-none"></div>
+                      <input
+                        id="hostel-predictive-search"
+                        type="text"
+                        value="${escapeHtml(hostelQuery)}"
+                        autocomplete="off"
+                        role="combobox"
+                        aria-controls="hostel-predictions-listbox"
+                        aria-autocomplete="both"
+                        placeholder="Search hostels by name (e.g., Horizon, Cedar, Maple)..."
+                        class="relative z-10 w-full bg-transparent px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                      />
+                    </div>
+                    <span id="predictive-tab-hint" class="mr-2 hidden shrink-0 rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-mono text-[10px] text-slate-500 sm:inline">Tab</span>
+                    <button
+                      type="button"
+                      id="clear-search-btn"
+                      aria-label="Clear search"
+                      class="mr-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 ${hostelQuery ? '' : 'hidden'}"
+                    >
+                      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+                  <ul
+                    id="hostel-predictions-listbox"
+                    role="listbox"
+                    class="absolute right-0 left-0 z-30 mt-2 hidden overflow-hidden rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg"
+                  ></ul>
+                </div>
+              </section>
+
+              <!-- Matching Hostels & PGs -->
+              <section id="tenant-results-section" aria-label="Matching hostels and PGs" class="mt-7">
+                ${renderTenantResultsHtml()}
+              </section>
+            </div>
+          `;
+        }
+
+        // =========================================================================
+        // 10. MODALS: ROOM EDITOR (LANDLORD) & ROOM DETAIL (TENANT)
+        // =========================================================================
+        function renderModal() {
+          const modalRoot = document.getElementById('modal-root');
+
+          // A. Landlord Room Editor Modal
+          if (state.role === 'landlord' && state.landlord.editingRoomRef && state.landlord.modalDraft) {
+            const { floorId } = state.landlord.editingRoomRef;
+            const floor = state.landlord.draft.floors.find((f) => f.id === floorId);
+            const md = state.landlord.modalDraft;
+
+            const thumbsHtml =
+              md.images.length > 0
+                ? `<div class="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                    ${md.images
+                      .map(
+                        (src, idx) => `
+                        <div class="group relative aspect-[4/3] overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+                          ${renderImageMarkup(src, `Room photo ${idx + 1}`, `Photo ${idx + 1}`)}
+                          <button
+                            type="button"
+                            data-remove-modal-img="${idx}"
+                            aria-label="Remove photo ${idx + 1}"
+                            class="absolute top-1.5 right-1.5 flex h-7 w-7 items-center justify-center rounded-md bg-slate-900/80 text-white hover:bg-rose-600"
+                          >
+                            <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                          </button>
+                        </div>
+                      `
+                      )
+                      .join('')}
+                  </div>`
+                : `<button type="button" id="upload-empty-trigger" class="mt-3 flex w-full flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-6 text-center transition-colors hover:border-indigo-400 hover:bg-indigo-50/40">
+                    <span class="text-sm font-medium text-slate-700">Click to upload room images</span>
+                    <span class="text-xs text-slate-500">PNG, JPG, or WebP · Up to 6 images (saved via FileReader)</span>
+                  </button>`;
+
+            modalRoot.innerHTML = `
+              <div id="modal-backdrop" class="animate-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="room-editor-title">
+                <div class="animate-modal-panel flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" onclick="event.stopPropagation()">
+                  <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                    <div>
+                      <p class="text-xs font-medium text-slate-500">${escapeHtml(floor?.name || '')}</p>
+                      <h2 id="room-editor-title" class="font-display text-lg font-bold text-slate-900">Edit Room ${escapeHtml(md.label)}</h2>
+                    </div>
+                    <button type="button" data-close-modal aria-label="Close room editor" class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+                      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+
+                  <form id="room-editor-form" class="flex flex-1 flex-col overflow-y-auto">
+                    <div class="space-y-6 p-6">
+                      <div id="room-editor-error" class="hidden rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert"></div>
+
+                      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div>
+                          <label for="room-label-input" class="block text-sm font-medium text-slate-700">Room Number / Label</label>
+                          <input id="room-label-input" type="text" value="${escapeHtml(md.label)}" placeholder="e.g. 101, G-02"
+                            class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 font-mono text-sm text-slate-900 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 focus:outline-none" />
+                        </div>
+                        <div>
+                          <label for="room-rent-input" class="block text-sm font-medium text-slate-700">Monthly Rent (INR / month)</label>
+                          <div class="relative mt-1.5">
+                            <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center font-mono text-sm text-slate-500">₹</span>
+                            <input id="room-rent-input" type="number" min="500" step="100" value="${escapeHtml(md.rent)}" placeholder="9500"
+                              class="block w-full rounded-lg border border-slate-300 bg-white py-2.5 pr-3.5 pl-8 font-mono text-sm text-slate-900 tabular-nums focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 focus:outline-none" />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span class="block text-sm font-medium text-slate-700">Room Status</span>
+                        <div class="mt-2 grid grid-cols-2 gap-3">
+                          <button type="button" data-modal-status="available" class="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${md.status === 'available' ? 'border-emerald-600 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">
+                            Available
+                          </button>
+                          <button type="button" data-modal-status="occupied" class="flex min-h-[44px] items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-colors ${md.status === 'occupied' ? 'border-rose-600 bg-rose-50 text-rose-800' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'}">
+                            Occupied
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span class="block text-sm font-medium text-slate-700">Utilities Included in Monthly Rent</span>
+                        <p class="mt-0.5 text-xs text-slate-500">Checked utilities appear as included; unchecked items show as billed separately.</p>
+                        <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                          <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 hover:border-slate-300">
+                            <input type="checkbox" id="util-electricity" ${md.utilities.electricity ? 'checked' : ''} class="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+                            <span class="text-sm font-medium text-slate-800">Electricity Bill</span>
+                          </label>
+                          <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 hover:border-slate-300">
+                            <input type="checkbox" id="util-water" ${md.utilities.water ? 'checked' : ''} class="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+                            <span class="text-sm font-medium text-slate-800">Water Bill</span>
+                          </label>
+                          <label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 hover:border-slate-300">
+                            <input type="checkbox" id="util-gas" ${md.utilities.gas ? 'checked' : ''} class="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+                            <span class="text-sm font-medium text-slate-800">Gas Bill</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div class="flex items-center justify-between gap-2">
+                          <div>
+                            <span class="block text-sm font-medium text-slate-700">Room Photos (${md.images.length}/6)</span>
+                            <p class="mt-0.5 text-xs text-slate-500">Upload one or more photos to preview and store locally.</p>
+                          </div>
+                          <button type="button" id="upload-photos-btn" ${md.images.length >= 6 ? 'disabled' : ''} class="min-h-[40px] shrink-0 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                            Upload Photos
+                          </button>
+                          <input id="room-images-file-input" type="file" accept="image/*" multiple class="hidden" />
+                        </div>
+                        ${thumbsHtml}
+                      </div>
+
+                      <div>
+                        <label for="room-maintenance-input" class="block text-sm font-medium text-slate-700">Maintenance Details &amp; Room Notes</label>
+                        <textarea id="room-maintenance-input" rows="3" placeholder="Include AC servicing dates, housekeeping schedule, Wi-Fi speed, geyser status, or furnishings..."
+                          class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 focus:outline-none">${escapeHtml(md.maintenanceNotes)}</textarea>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+                      <button type="button" data-close-modal class="min-h-[40px] whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
+                      <button type="submit" class="min-h-[40px] whitespace-nowrap rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Save Room</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            `;
+            bindRoomEditorModalEvents();
+            return;
+          }
+
+          // B. Tenant Room Detail Modal
+          if (state.role === 'tenant' && state.tenant.selectedRoomCtx) {
+            const { propertyId, floorId, roomId } = state.tenant.selectedRoomCtx;
+            const property = state.properties.find((p) => p.id === propertyId);
+            const floor = property?.floors.find((f) => f.id === floorId);
+            const room = floor?.rooms.find((r) => r.id === roomId);
+
+            if (!property || !floor || !room) {
+              modalRoot.innerHTML = '';
+              return;
+            }
+
+            const images = room.images || [];
+            const activeIdx = Math.min(state.tenant.activeImageIdx, Math.max(0, images.length - 1));
+            const isAvailable = room.status === 'available';
+            const hasRequested = state.visitRequests.some(
+              (vr) => vr.propertyId === property.id && vr.roomId === room.id
+            );
+            const showContact = state.tenant.showContactPanel || hasRequested;
+
+            const utilityCards = [
+              { label: 'Electricity Bill', included: room.utilities.electricity },
+              { label: 'Water Bill', included: room.utilities.water },
+              { label: 'Gas Bill', included: room.utilities.gas },
+            ]
+              .map(
+                (u) => `
+                <div class="rounded-xl border p-3.5 ${u.included ? 'border-emerald-200 bg-emerald-50/50' : 'border-slate-200 bg-slate-50/70'}">
+                  <p class="text-sm font-semibold text-slate-900">${u.label}</p>
+                  <p class="mt-0.5 text-xs font-medium ${u.included ? 'text-emerald-700' : 'text-slate-600'}">
+                    ${u.included ? 'Included in rent' : 'Billed separately'}
+                  </p>
+                </div>
+              `
+              )
+              .join('');
+
+            modalRoot.innerHTML = `
+              <div id="modal-backdrop" class="animate-modal-backdrop fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-[2px]" role="dialog" aria-modal="true" aria-labelledby="room-detail-title">
+                <div class="animate-modal-panel flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl" onclick="event.stopPropagation()">
+                  <div class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
+                    <div>
+                      <p class="text-xs font-medium text-slate-500">${escapeHtml(property.name)} · ${escapeHtml(floor.name)} · ${escapeHtml(property.location)}</p>
+                      <div class="mt-1 flex flex-wrap items-center gap-3">
+                        <h2 id="room-detail-title" class="font-display text-xl font-bold text-slate-900">Room ${escapeHtml(room.label)}</h2>
+                        <span class="inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold ${isAvailable ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}">
+                          ${isAvailable ? 'Available' : 'Occupied'}
+                        </span>
+                      </div>
+                    </div>
+                    <button type="button" data-close-modal aria-label="Close room details" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+                      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                  </div>
+
+                  <div class="flex-1 space-y-6 overflow-y-auto p-6">
+                    <!-- Gallery -->
+                    <div>
+                      <div class="relative aspect-[16/10] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                        ${renderImageMarkup(images[activeIdx] || '', `${property.name} Room ${room.label}`, `No photos uploaded for Room ${room.label}`)}
+                        ${
+                          images.length > 1
+                            ? `
+                          <button type="button" id="gallery-prev-btn" aria-label="Previous photo" class="absolute top-1/2 left-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-sm hover:bg-white">‹</button>
+                          <button type="button" id="gallery-next-btn" aria-label="Next photo" class="absolute top-1/2 right-3 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-sm hover:bg-white">›</button>
+                          <div class="pointer-events-none absolute right-3 bottom-3 rounded-md bg-slate-950/75 px-2.5 py-1 font-mono text-xs text-white tabular-nums">${activeIdx + 1} / ${images.length}</div>
+                        `
+                            : ''
+                        }
+                      </div>
+                      ${
+                        images.length > 1
+                          ? `<div class="mt-3 flex gap-2.5 overflow-x-auto pb-1">
+                              ${images
+                                .map(
+                                  (src, idx) => `
+                                  <button type="button" data-gallery-idx="${idx}" class="h-16 w-20 shrink-0 overflow-hidden rounded-lg border-2 ${idx === activeIdx ? 'border-indigo-600 opacity-100' : 'border-transparent opacity-70 hover:opacity-100'}">
+                                    ${renderImageMarkup(src, `Thumbnail ${idx + 1}`, `Photo ${idx + 1}`)}
+                                  </button>
+                                `
+                                )
+                                .join('')}
+                            </div>`
+                          : ''
+                      }
+                    </div>
+
+                    <!-- Rent Summary -->
+                    <div class="flex flex-col justify-between gap-4 border-y border-slate-200 py-4 sm:flex-row sm:items-center">
+                      <div>
+                        <p class="text-xs font-medium text-slate-500">Monthly Rent</p>
+                        <p class="mt-0.5 font-mono text-2xl font-bold text-slate-900 tabular-nums">
+                          ${escapeHtml(formatINR(room.rent))}<span class="ml-1 font-sans text-sm font-normal text-slate-500">/ month</span>
+                        </p>
+                      </div>
+                      <div class="text-sm text-slate-600 sm:text-right">
+                        <p class="font-medium text-slate-900">Managed by ${escapeHtml(property.owner.name)}</p>
+                        <p class="font-mono text-xs text-slate-500">${escapeHtml(property.owner.phone)}</p>
+                      </div>
+                    </div>
+
+                    <!-- Utility Inclusions -->
+                    <div>
+                      <h3 class="font-display text-sm font-semibold text-slate-900">Utility Bill Inclusions</h3>
+                      <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">${utilityCards}</div>
+                    </div>
+
+                    <!-- Maintenance Notes -->
+                    <div>
+                      <h3 class="font-display text-sm font-semibold text-slate-900">Maintenance Details &amp; Notes</h3>
+                      <p class="mt-2 rounded-xl border border-slate-200 bg-slate-50/60 p-4 text-sm leading-relaxed text-slate-700">
+                        ${escapeHtml(room.maintenanceNotes || 'No additional maintenance notes have been listed for this room yet. Reach out to the landlord for recent inspection details.')}
+                      </p>
+                    </div>
+
+                    ${
+                      showContact
+                        ? `
+                      <div class="rounded-xl border border-indigo-200 bg-indigo-50/50 p-5">
+                        <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                          <div>
+                            <h4 class="font-display text-sm font-bold text-slate-900">Landlord Contact Details</h4>
+                            <p class="mt-1 text-sm font-medium text-slate-800">${escapeHtml(property.owner.name)}</p>
+                            <div class="mt-2 flex flex-col gap-1.5 text-sm text-slate-700">
+                              <div class="flex items-center gap-2">
+                                <a href="tel:${escapeHtml(property.owner.phone.replace(/\s+/g, ''))}" class="font-mono hover:text-indigo-700 hover:underline">${escapeHtml(property.owner.phone)}</a>
+                                <button type="button" id="copy-owner-phone-btn" class="rounded px-2 py-0.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100">
+                                  ${state.tenant.copiedPhone ? 'Copied' : 'Copy'}
+                                </button>
+                              </div>
+                              <a href="mailto:${escapeHtml(property.owner.email)}" class="hover:text-indigo-700 hover:underline">${escapeHtml(property.owner.email)}</a>
+                            </div>
+                          </div>
+                          ${
+                            isAvailable
+                              ? `<div class="shrink-0">
+                                  ${
+                                    hasRequested
+                                      ? `<div class="inline-flex items-center rounded-lg border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-xs font-semibold text-emerald-800">Visit Request Sent</div>`
+                                      : `<button type="button" data-confirm-visit class="min-h-[40px] whitespace-nowrap rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white hover:bg-indigo-700">Send Visit Request</button>`
+                                  }
+                                  ${
+                                    state.tenantProfile
+                                      ? `<p class="mt-1.5 text-[11px] text-slate-500">Shares ${escapeHtml(state.tenantProfile.fullName)} (${escapeHtml(state.tenantProfile.phone)})</p>`
+                                      : ''
+                                  }
+                                </div>`
+                              : ''
+                          }
+                        </div>
+                      </div>
+                    `
+                        : ''
+                    }
+                  </div>
+
+                  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-slate-50 px-6 py-4">
+                    <button type="button" data-close-modal class="min-h-[42px] whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Close</button>
+                    ${
+                      isAvailable
+                        ? hasRequested
+                          ? `<span class="text-sm font-semibold text-emerald-700">Visit request sent to ${escapeHtml(property.owner.name)}</span>`
+                          : `<div class="flex flex-wrap items-center gap-2.5">
+                              ${!showContact ? `<button type="button" id="show-contact-btn" class="min-h-[42px] whitespace-nowrap rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-800 hover:bg-slate-100">Contact Landlord</button>` : ''}
+                              <button type="button" data-confirm-visit class="min-h-[42px] whitespace-nowrap rounded-lg bg-indigo-600 px-5 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Request Visit</button>
+                            </div>`
+                        : `<div class="flex items-center gap-3">
+                            <span class="text-xs text-slate-500">This room is currently occupied.</span>
+                            ${!showContact ? `<button type="button" id="show-contact-btn" class="min-h-[40px] whitespace-nowrap rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Contact Landlord</button>` : ''}
+                          </div>`
+                    }
+                  </div>
+                </div>
+              </div>
+            `;
+            bindRoomDetailModalEvents(property, room);
+            return;
+          }
+
+          modalRoot.innerHTML = '';
+        }
+
+        // =========================================================================
+        // 11. EVENT BINDINGS
+        // =========================================================================
+        function bindRoomEditorModalEvents() {
+          const backdrop = document.getElementById('modal-backdrop');
+          if (backdrop) {
+            backdrop.addEventListener('click', (e) => {
+              if (e.target === backdrop) closeModals();
+            });
+          }
+          document.querySelectorAll('[data-close-modal]').forEach((btn) => {
+            btn.addEventListener('click', closeModals);
+          });
+
+          const md = state.landlord.modalDraft;
+          if (!md) return;
+
+          const labelInput = document.getElementById('room-label-input');
+          const rentInput = document.getElementById('room-rent-input');
+          const notesInput = document.getElementById('room-maintenance-input');
+          const utilElec = document.getElementById('util-electricity');
+          const utilWater = document.getElementById('util-water');
+          const utilGas = document.getElementById('util-gas');
+
+          labelInput?.addEventListener('input', (e) => { md.label = e.target.value; });
+          rentInput?.addEventListener('input', (e) => { md.rent = e.target.value; });
+          notesInput?.addEventListener('input', (e) => { md.maintenanceNotes = e.target.value; });
+          utilElec?.addEventListener('change', (e) => { md.utilities.electricity = e.target.checked; });
+          utilWater?.addEventListener('change', (e) => { md.utilities.water = e.target.checked; });
+          utilGas?.addEventListener('change', (e) => { md.utilities.gas = e.target.checked; });
+
+          document.querySelectorAll('[data-modal-status]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              md.status = btn.getAttribute('data-modal-status');
+              renderModal();
+            });
+          });
+
+          const fileInput = document.getElementById('room-images-file-input');
+          document.getElementById('upload-photos-btn')?.addEventListener('click', () => fileInput?.click());
+          document.getElementById('upload-empty-trigger')?.addEventListener('click', () => fileInput?.click());
+
+          fileInput?.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files || []).filter((f) => f.type.startsWith('image/'));
+            if (files.length === 0) return;
+            const remaining = Math.max(0, 6 - md.images.length);
+            const batch = files.slice(0, remaining);
+            try {
+              const encoded = await Promise.all(batch.map((file) => readAndOptimizeImage(file)));
+              md.images.push(...encoded);
+              renderModal();
+            } catch {
+              showToast('Upload failed', 'Could not read the selected image files.', 'error');
+            }
+          });
+
+          document.querySelectorAll('[data-remove-modal-img]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const idx = Number(btn.getAttribute('data-remove-modal-img'));
+              md.images.splice(idx, 1);
+              renderModal();
+            });
+          });
+
+          document.getElementById('room-editor-form')?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const errEl = document.getElementById('room-editor-error');
+            const trimmedLabel = String(md.label || '').trim();
+            const parsedRent = Number(md.rent);
+            if (!trimmedLabel) {
+              if (errEl) { errEl.textContent = 'Room number or label is required.'; errEl.classList.remove('hidden'); }
+              return;
+            }
+            if (!Number.isFinite(parsedRent) || parsedRent <= 0) {
+              if (errEl) { errEl.textContent = 'Please enter a valid monthly rent greater than 0.'; errEl.classList.remove('hidden'); }
+              return;
+            }
+
+            const { floorId, roomId } = state.landlord.editingRoomRef;
+            const floor = state.landlord.draft.floors.find((f) => f.id === floorId);
+            if (floor) {
+              floor.rooms = floor.rooms.map((rm) =>
+                rm.id === roomId
+                  ? {
+                      ...rm,
+                      label: trimmedLabel,
+                      rent: Math.round(parsedRent),
+                      status: md.status,
+                      utilities: { ...md.utilities },
+                      images: [...md.images],
+                      maintenanceNotes: String(md.maintenanceNotes || '').trim(),
+                    }
+                  : rm
+              );
+            }
+            state.landlord.isDirty = true;
+            state.landlord.editingRoomRef = null;
+            state.landlord.modalDraft = null;
+            render();
+            showToast(
+              `Room ${trimmedLabel} updated`,
+              'Click "Save Property" to publish changes to the Student / Tenant portal.',
+              'info'
+            );
+          });
+        }
+
+        function bindRoomDetailModalEvents(property, room) {
+          const backdrop = document.getElementById('modal-backdrop');
+          if (backdrop) {
+            backdrop.addEventListener('click', (e) => {
+              if (e.target === backdrop) closeModals();
+            });
+          }
+          document.querySelectorAll('[data-close-modal]').forEach((btn) => {
+            btn.addEventListener('click', closeModals);
+          });
+
+          const totalImgs = (room.images || []).length;
+          document.getElementById('gallery-prev-btn')?.addEventListener('click', () => {
+            state.tenant.activeImageIdx = (state.tenant.activeImageIdx - 1 + totalImgs) % totalImgs;
+            renderModal();
+          });
+          document.getElementById('gallery-next-btn')?.addEventListener('click', () => {
+            state.tenant.activeImageIdx = (state.tenant.activeImageIdx + 1) % totalImgs;
+            renderModal();
+          });
+          document.querySelectorAll('[data-gallery-idx]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              state.tenant.activeImageIdx = Number(btn.getAttribute('data-gallery-idx'));
+              renderModal();
+            });
+          });
+
+          document.getElementById('show-contact-btn')?.addEventListener('click', () => {
+            state.tenant.showContactPanel = true;
+            renderModal();
+          });
+
+          document.getElementById('copy-owner-phone-btn')?.addEventListener('click', async () => {
+            try {
+              await navigator.clipboard.writeText(property.owner.phone);
+              state.tenant.copiedPhone = true;
+              renderModal();
+              window.setTimeout(() => {
+                state.tenant.copiedPhone = false;
+                renderModal();
+              }, 1800);
+            } catch {}
+          });
+
+          document.querySelectorAll('[data-confirm-visit]').forEach((btn) => {
+            btn.addEventListener('click', () => {
+              const already = state.visitRequests.some(
+                (vr) => vr.propertyId === property.id && vr.roomId === room.id
+              );
+              if (!already) {
+                state.visitRequests.unshift({
+                  id: `vr-${Date.now()}`,
+                  propertyId: property.id,
+                  propertyName: property.name,
+                  roomId: room.id,
+                  roomLabel: room.label,
+                  tenantName: state.tenantProfile?.fullName || 'Prospective Tenant',
+                  tenantPhone: state.tenantProfile?.phone || '',
+                  tenantEmail: state.tenantProfile?.email || '',
+                  createdAt: new Date().toISOString(),
+                });
+                saveVisitRequests(state.visitRequests);
+                showToast(
+                  'Visit request sent',
+                  `${property.owner.name} has been notified about Room ${room.label} at ${property.name}.`,
+                  'success'
+                );
+              }
+              state.tenant.showContactPanel = true;
+              render();
+            });
+          });
+        }
+
+        function closeModals() {
+          state.landlord.editingRoomRef = null;
+          state.landlord.modalDraft = null;
+          state.tenant.selectedRoomCtx = null;
+          state.tenant.showContactPanel = false;
+          state.tenant.copiedPhone = false;
+          renderModal();
+        }
+
+        function bindMainEvents() {
+          const main = document.getElementById('main-content');
+
+          // --- LANDING EVENTS ---
+          if (state.role === 'landing') {
+            main.querySelectorAll('[data-pick-role]').forEach((el) => {
+              el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                setRole(el.getAttribute('data-pick-role'));
+              });
+              el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setRole(el.getAttribute('data-pick-role'));
+                }
+              });
+            });
+            return;
+          }
+
+          // --- LANDLORD EVENTS ---
+          if (state.role === 'landlord') {
+            const selectProp = (id) => {
+              if (id === 'new') {
+                state.landlord.selectedPropertyId = 'new';
+                state.landlord.draft = createEmptyProperty();
+              } else {
+                const found = state.properties.find((p) => p.id === id);
+                if (!found) return;
+                state.landlord.selectedPropertyId = found.id;
+                state.landlord.draft = deepClone(found);
+              }
+              syncRoomCountInputsFromDraft();
+              state.landlord.formErrors = {};
+              state.landlord.isDirty = false;
+              render();
+            };
+
+            document.getElementById('property-selector')?.addEventListener('change', (e) => selectProp(e.target.value));
+            document.getElementById('new-property-btn')?.addEventListener('click', () => selectProp('new'));
+
+            main.querySelectorAll('[data-landlord-field]').forEach((input) => {
+              input.addEventListener('input', (e) => {
+                const field = input.getAttribute('data-landlord-field');
+                const val = e.target.value;
+                if (field === 'owner_name') state.landlord.draft.owner.name = val;
+                else if (field === 'owner_phone') state.landlord.draft.owner.phone = val;
+                else if (field === 'owner_email') state.landlord.draft.owner.email = val;
+                else if (field === 'name') {
+                  state.landlord.draft.name = val;
+                  const h1 = document.getElementById('landlord-heading-title');
+                  if (h1) h1.textContent = val.trim() || 'New Hostel / PG Listing';
+                } else if (field === 'location') {
+                  state.landlord.draft.location = val;
+                  const locSpan = document.getElementById('publish-location-preview');
+                  if (locSpan) locSpan.textContent = val.trim() || 'your location';
+                }
+                delete state.landlord.formErrors[field];
+                state.landlord.isDirty = true;
+                document.getElementById('unsaved-indicator')?.classList.remove('hidden');
+              });
+            });
+
+            const addFloor = () => {
+              const idx = state.landlord.draft.floors.length;
+              const flId = `fl-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+              const rooms = Array.from({ length: 4 }, (_, rIdx) => ({
+                id: `rm-${Date.now()}-${rIdx}-${Math.random().toString(36).slice(2, 5)}`,
+                label: generateRoomLabel(idx, rIdx),
+                rent: 9500,
+                status: 'available',
+                utilities: { electricity: false, water: true, gas: true },
+                images: [],
+                maintenanceNotes: '',
+              }));
+              state.landlord.draft.floors.push({ id: flId, name: createDefaultFloorName(idx), rooms });
+              state.landlord.roomCountInputs[flId] = '4';
+              state.landlord.isDirty = true;
+              render();
+            };
+
+            document.getElementById('add-floor-btn')?.addEventListener('click', addFloor);
+            document.getElementById('add-first-floor-btn')?.addEventListener('click', addFloor);
+
+            main.querySelectorAll('[data-floor-name-input]').forEach((input) => {
+              input.addEventListener('input', (e) => {
+                const flId = input.getAttribute('data-floor-name-input');
+                const fl = state.landlord.draft.floors.find((f) => f.id === flId);
+                if (fl) fl.name = e.target.value;
+                state.landlord.isDirty = true;
+                document.getElementById('unsaved-indicator')?.classList.remove('hidden');
+              });
+            });
+
+            main.querySelectorAll('[data-room-count-input]').forEach((input) => {
+              input.addEventListener('input', (e) => {
+                const flId = input.getAttribute('data-room-count-input');
+                state.landlord.roomCountInputs[flId] = e.target.value;
+              });
+            });
+
+            main.querySelectorAll('[data-generate-rooms]').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                const [flId, flIdxStr] = btn.getAttribute('data-generate-rooms').split('::');
+                const flIdx = Number(flIdxStr);
+                const rawCount = Number(state.landlord.roomCountInputs[flId]);
+                if (!Number.isInteger(rawCount) || rawCount < 1 || rawCount > 30) {
+                  showToast('Enter between 1 and 30 rooms', 'Choose a valid room count before updating the grid.', 'error');
+                  return;
+                }
+                const fl = state.landlord.draft.floors.find((f) => f.id === flId);
+                if (!fl) return;
+                if (rawCount < fl.rooms.length) {
+                  fl.rooms = fl.rooms.slice(0, rawCount);
+                } else if (rawCount > fl.rooms.length) {
+                  const baseRent = fl.rooms[0]?.rent ?? 9500;
+                  for (let i = fl.rooms.length; i < rawCount; i += 1) {
+                    fl.rooms.push({
+                      id: `rm-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+                      label: generateRoomLabel(flIdx, i),
+                      rent: baseRent,
+                      status: 'available',
+                      utilities: { electricity: false, water: true, gas: true },
+                      images: [],
+                      maintenanceNotes: '',
+                    });
+                  }
+                }
+                state.landlord.isDirty = true;
+                render();
+              });
+            });
+
+            main.querySelectorAll('[data-remove-floor]').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                const flId = btn.getAttribute('data-remove-floor');
+                state.landlord.draft.floors = state.landlord.draft.floors.filter((f) => f.id !== flId);
+                state.landlord.isDirty = true;
+                render();
+              });
+            });
+
+            main.querySelectorAll('[data-quick-toggle]').forEach((btn) => {
+              btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const [flId, rmId] = btn.getAttribute('data-quick-toggle').split('::');
+                const fl = state.landlord.draft.floors.find((f) => f.id === flId);
+                const rm = fl?.rooms.find((r) => r.id === rmId);
+                if (rm) {
+                  rm.status = rm.status === 'available' ? 'occupied' : 'available';
+                  state.landlord.isDirty = true;
+                  render();
+                }
+              });
+            });
+
+            main.querySelectorAll('[data-open-room-editor]').forEach((card) => {
+              const openEditor = () => {
+                const [floorId, roomId] = card.getAttribute('data-open-room-editor').split('::');
+                const fl = state.landlord.draft.floors.find((f) => f.id === floorId);
+                const rm = fl?.rooms.find((r) => r.id === roomId);
+                if (!rm) return;
+                state.landlord.editingRoomRef = { floorId, roomId };
+                state.landlord.modalDraft = deepClone(rm);
+                renderModal();
+              };
+              card.addEventListener('click', openEditor);
+              card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  openEditor();
+                }
+              });
+            });
+
+            main.querySelectorAll('[data-save-property-btn]').forEach((btn) => {
+              btn.addEventListener('click', () => {
+                const d = state.landlord.draft;
+                const errors = {};
+                if (!d.owner.name.trim()) errors.owner_name = 'Owner name is required.';
+                if (!isValidPhone(d.owner.phone)) errors.owner_phone = 'Enter a valid 10-digit phone number.';
+                if (!isValidEmail(d.owner.email)) errors.owner_email = 'Enter a valid email address.';
+                if (!d.name.trim()) errors.name = 'Hostel or PG name is required.';
+                if (!d.location.trim()) errors.location = 'Location is required.';
+
+                if (Object.keys(errors).length > 0) {
+                  state.landlord.formErrors = errors;
+                  render();
+                  showToast('Please complete required details', 'Check highlighted owner and property fields before saving.', 'error');
+                  return;
+                }
+
+                const stats = getPropertyStats(d);
+                if (d.floors.length === 0 || stats.totalRooms === 0) {
+                  showToast('Add at least one floor and room', 'Your property needs at least one room in the 2D grid before publishing.', 'error');
+                  return;
+                }
+
+                const cleanProp = {
+                  ...deepClone(d),
+                  name: d.name.trim(),
+                  location: d.location.trim(),
+                  owner: {
+                    name: d.owner.name.trim(),
+                    phone: d.owner.phone.trim(),
+                    email: d.owner.email.trim(),
+                  },
+                  floors: d.floors.map((fl, i) => ({
+                    ...deepClone(fl),
+                    name: fl.name.trim() || createDefaultFloorName(i),
+                  })),
+                  updatedAt: new Date().toISOString(),
+                };
+
+                const current = loadProperties();
+                const exists = current.some((p) => p.id === cleanProp.id);
+                const nextList = exists
+                  ? current.map((p) => (p.id === cleanProp.id ? cleanProp : p))
+                  : [cleanProp, ...current];
+
+                if (saveProperties(nextList)) {
+                  state.properties = nextList;
+                  state.landlord.selectedPropertyId = cleanProp.id;
+                  state.landlord.draft = deepClone(cleanProp);
+                  state.landlord.formErrors = {};
+                  state.landlord.isDirty = false;
+                  syncRoomCountInputsFromDraft();
+                  render();
+                  showToast(
+                    'Property saved & published',
+                    `${cleanProp.name} (${cleanProp.location}) is now live in the Student / Tenant portal.`,
+                    'success'
+                  );
+                } else {
+                  showToast('Storage limit reached', 'Try removing a few large photos and save again.', 'error');
+                }
+              });
+            });
+
+            renderOrUpdateOccupancyChart();
+            return;
+          }
+
+          // --- TENANT EVENTS ---
+          if (state.role === 'tenant') {
+            if (state.tenant.isEditingProfile) {
+              const form = document.getElementById('tenant-onboarding-form');
+              form?.querySelectorAll('input[name]').forEach((input) => {
+                input.addEventListener('input', (e) => {
+                  const key = input.getAttribute('name');
+                  state.tenant.formValues[key] = e.target.value;
+                  delete state.tenant.formErrors[key];
+                });
+              });
+
+              main.querySelectorAll('[data-pick-onboarding-loc]').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                  const loc = btn.getAttribute('data-pick-onboarding-loc');
+                  state.tenant.formValues.preferredLocation = loc;
+                  delete state.tenant.formErrors.preferredLocation;
+                  render();
+                });
+              });
+
+              document.getElementById('cancel-tenant-edit-btn')?.addEventListener('click', () => {
+                state.tenant.isEditingProfile = false;
+                render();
+              });
+
+              form?.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const fv = state.tenant.formValues;
+                const errors = {};
+                if (!fv.fullName.trim()) errors.fullName = 'Full name is required.';
+                if (!isValidPhone(fv.phone)) errors.phone = 'Enter a valid 10-digit phone number.';
+                if (!isValidEmail(fv.email)) errors.email = 'Enter a valid email address.';
+                if (!fv.preferredLocation.trim()) errors.preferredLocation = 'Please enter or select your preferred location.';
+
+                if (Object.keys(errors).length > 0) {
+                  state.tenant.formErrors = errors;
+                  render();
+                  return;
+                }
+
+                const nextProfile = {
+                  fullName: fv.fullName.trim(),
+                  phone: fv.phone.trim(),
+                  email: fv.email.trim(),
+                  preferredLocation: fv.preferredLocation.trim(),
+                };
+                state.tenantProfile = nextProfile;
+                saveTenantProfile(nextProfile);
+                state.tenant.formValues = { ...nextProfile };
+                state.tenant.formErrors = {};
+                state.tenant.isEditingProfile = false;
+                state.tenant.hostelQuery = '';
+                state.tenant.expandedPropertyId = null;
+                render();
+                showToast('Preferences updated', `Showing hostels and PGs in ${nextProfile.preferredLocation}.`, 'info');
+              });
+              return;
+            }
+
+            document.getElementById('edit-tenant-profile-btn')?.addEventListener('click', () => {
+              state.tenant.isEditingProfile = true;
+              render();
+            });
+
+            // Predictive Search Wiring
+            const searchInput = document.getElementById('hostel-predictive-search');
+            const dropdown = document.getElementById('hostel-predictions-listbox');
+            const activeLocation = (state.tenantProfile?.preferredLocation || state.tenant.formValues.preferredLocation || '').trim();
+
+            const selectPredictionById = (propId) => {
+              const prop = state.properties.find((p) => p.id === propId);
+              if (!prop) return;
+              state.tenant.hostelQuery = prop.name;
+              state.tenant.isDropdownOpen = false;
+              state.tenant.expandedPropertyId = prop.id;
+              if (state.tenantProfile && !prop.location.toLowerCase().includes(activeLocation.toLowerCase())) {
+                state.tenantProfile = { ...state.tenantProfile, preferredLocation: prop.location };
+                state.tenant.formValues.preferredLocation = prop.location;
+                saveTenantProfile(state.tenantProfile);
+              }
+              render();
+            };
+
+            searchInput?.addEventListener('focus', () => {
+              state.tenant.isDropdownOpen = true;
+              updatePredictiveUiOnly();
+            });
+
+            searchInput?.addEventListener('input', (e) => {
+              state.tenant.hostelQuery = e.target.value;
+              state.tenant.isDropdownOpen = true;
+              state.tenant.highlightedIndex = 0;
+              updatePredictiveUiOnly();
+            });
+
+            searchInput?.addEventListener('keydown', (e) => {
+              const suggestions = getPredictiveSuggestions(state.tenant.hostelQuery, activeLocation);
+              const inlinePred = getInlinePrediction(state.tenant.hostelQuery, suggestions);
+
+              if ((e.key === 'Tab' || e.key === 'ArrowRight') && inlinePred && inlinePred !== state.tenant.hostelQuery) {
+                if (searchInput.selectionStart === state.tenant.hostelQuery.length) {
+                  e.preventDefault();
+                  state.tenant.hostelQuery = inlinePred;
+                  searchInput.value = inlinePred;
+                  updatePredictiveUiOnly();
+                  return;
+                }
+              }
+              if (!state.tenant.isDropdownOpen || suggestions.length === 0) return;
+
+              if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                state.tenant.highlightedIndex = (state.tenant.highlightedIndex + 1) % suggestions.length;
+                updatePredictiveUiOnly();
+              } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                state.tenant.highlightedIndex = (state.tenant.highlightedIndex - 1 + suggestions.length) % suggestions.length;
+                updatePredictiveUiOnly();
+              } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const chosen = suggestions[state.tenant.highlightedIndex] || suggestions[0];
+                if (chosen) selectPredictionById(chosen.id);
+              } else if (e.key === 'Escape') {
+                state.tenant.isDropdownOpen = false;
+                updatePredictiveUiOnly();
+              }
+            });
+
+            dropdown?.addEventListener('mousedown', (e) => {
+              const li = e.target.closest('[data-select-prediction]');
+              if (li) {
+                e.preventDefault();
+                selectPredictionById(li.getAttribute('data-select-prediction'));
+              }
+            });
+
+            document.getElementById('clear-search-btn')?.addEventListener('click', () => {
+              state.tenant.hostelQuery = '';
+              state.tenant.isDropdownOpen = false;
+              if (searchInput) searchInput.value = '';
+              updatePredictiveUiOnly();
+              searchInput?.focus();
+            });
+
+            // Delegated events inside tenant results section (works seamlessly after live typing!)
+            const resultsSection = document.getElementById('tenant-results-section');
+            resultsSection?.addEventListener('click', (e) => {
+              const clearEmpty = e.target.closest('#empty-clear-search-btn');
+              if (clearEmpty) {
+                state.tenant.hostelQuery = '';
+                if (searchInput) searchInput.value = '';
+                updatePredictiveUiOnly();
+                return;
+              }
+
+              const quickLocBtn = e.target.closest('[data-quick-location]');
+              if (quickLocBtn) {
+                const loc = quickLocBtn.getAttribute('data-quick-location');
+                state.tenant.formValues.preferredLocation = loc;
+                state.tenant.hostelQuery = '';
+                state.tenant.expandedPropertyId = null;
+                if (state.tenantProfile) {
+                  state.tenantProfile = { ...state.tenantProfile, preferredLocation: loc };
+                  saveTenantProfile(state.tenantProfile);
+                }
+                render();
+                return;
+              }
+
+              const toggleBtn = e.target.closest('[data-toggle-property]');
+              if (toggleBtn) {
+                const propId = toggleBtn.getAttribute('data-toggle-property');
+                state.tenant.expandedPropertyId = state.tenant.expandedPropertyId === propId ? null : propId;
+                resultsSection.innerHTML = renderTenantResultsHtml();
+                return;
+              }
+
+              const roomBtn = e.target.closest('[data-open-room-detail]');
+              if (roomBtn) {
+                const [propertyId, floorId, roomId] = roomBtn.getAttribute('data-open-room-detail').split('::');
+                state.tenant.selectedRoomCtx = { propertyId, floorId, roomId };
+                state.tenant.activeImageIdx = 0;
+                state.tenant.showContactPanel = false;
+                state.tenant.copiedPhone = false;
+                renderModal();
+              }
+            });
+
+            updatePredictiveUiOnly();
+          }
+        }
+
+        // =========================================================================
+        // 12. MASTER RENDER & GLOBAL LISTENERS
+        // =========================================================================
+        function render() {
+          updateNavActiveStyles();
+          const main = document.getElementById('main-content');
+          if (state.role === 'landing') {
+            main.innerHTML = renderLanding();
+          } else if (state.role === 'landlord') {
+            main.innerHTML = renderLandlord();
+          } else {
+            main.innerHTML = renderTenant();
+          }
+          bindMainEvents();
+          renderModal();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+          document.getElementById('footer-copy').textContent = `© ${new Date().getFullYear()} StayGrid. Hostel & PG Management Platform.`;
+
+          document.getElementById('nav-brand-btn')?.addEventListener('click', () => setRole('landing'));
+          document.querySelectorAll('[data-nav-role]').forEach((btn) => {
+            btn.addEventListener('click', () => setRole(btn.getAttribute('data-nav-role')));
+          });
+
+          document.getElementById('switch-role-btn')?.addEventListener('click', () => {
+            if (state.role === 'landing') {
+              document.getElementById('role-selection-grid')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } else {
+              setRole('landing');
+            }
+          });
+
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+              if (state.landlord.editingRoomRef || state.tenant.selectedRoomCtx) {
+                closeModals();
+              }
+            }
+          });
+
+          document.addEventListener('mousedown', (e) => {
+            const box = document.getElementById('predictive-search-box');
+            if (box && !box.contains(e.target) && state.tenant.isDropdownOpen) {
+              state.tenant.isDropdownOpen = false;
+              updatePredictiveUiOnly();
+            }
+          });
+
+          window.addEventListener('storage', (e) => {
+            if (e.key === STORAGE_KEYS.PROPERTIES) {
+              state.properties = loadProperties();
+              render();
+            } else if (e.key === STORAGE_KEYS.TENANT_PROFILE) {
+              state.tenantProfile = loadTenantProfile();
+              render();
+            } else if (e.key === STORAGE_KEYS.VISIT_REQUESTS) {
+              state.visitRequests = loadVisitRequests();
+              render();
+            }
+          });
+
+          render();
+        });
+      })();
+    </script>
   </body>
 </html>
